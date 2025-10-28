@@ -11,15 +11,22 @@ let jwtToken = null;
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', function() {
-    // Get user info from localStorage
-    const userInfo = JSON.parse(localStorage.getItem("loggedInUser") || "{}");
+    // Get user info from sessionStorage (same as main.js)
+    const userInfo = JSON.parse(sessionStorage.getItem("loggedInUser") || "{}");
+    console.log("User info from sessionStorage:", userInfo);
+
     currentUserRole = userInfo && userInfo.user ? userInfo.user.role_id : null;
     currentUserId = userInfo && userInfo.user ? userInfo.user.id : null;
     jwtToken = userInfo.token;
 
+    console.log("Current user role:", currentUserRole);
+    console.log("Current user ID:", currentUserId);
+    console.log("JWT token exists:", !!jwtToken);
+
     if (!jwtToken) {
+        console.error("No JWT token found in sessionStorage");
         alert('로그인이 필요합니다.');
-        window.location.href = '/login.html';
+        window.top.location.href = '/login.html';
         return;
     }
 
