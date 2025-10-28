@@ -134,29 +134,46 @@ async function logout(){
 
 
 function loadContent(page) {
+    console.log("loadContent called with page:", page);
     if(page != undefined){
-    
+
         fetch(page)
-        .then(response => response.text())
+        .then(response => {
+            console.log("Fetch response for", page, "status:", response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.text();
+        })
         .then(data => {
-            //document.getElementById("content-frame").src = page;
+            console.log("Fetch succeeded, loading page:", page);
             const iframe = document.getElementById("content-frame");
             iframe.style.height = window.innerHeight + 'px';
             iframe.src = page;
-            console.log("page: ", page);
+            console.log("iframe.src set to:", page);
             iframe.onload = () => {
-                 if (window.location.search) {
-                     history.replaceState(null, "", "main.html"); // URL에서 content 파라미터 제거
-                 }
+                console.log("iframe loaded successfully:", page);
+                if (window.location.search) {
+                    history.replaceState(null, "", "main.html"); // URL에서 content 파라미터 제거
+                }
+            }
+            iframe.onerror = () => {
+                console.error("iframe failed to load:", page);
+                alert("페이지 로드 실패: " + page);
             }
         })
         .catch(error => {
-            contentArea.innerHTML = "페이지를 불러오는 중 오류가 발생했습니다.";
-            console.error(error);
+            console.error("Error loading page:", page, error);
+            alert("페이지를 불러오는 중 오류가 발생했습니다: " + page + "\n" + error.message);
+            const contentAreaEl = document.getElementById("content-area");
+            if (contentAreaEl) {
+                contentAreaEl.innerHTML = "페이지를 불러오는 중 오류가 발생했습니다.";
+            }
         });
     }
     else
     {
+        console.log("page is undefined, setting iframe to about:blank");
         document.getElementById("content-frame").src = "about:blank";
     }
 }
