@@ -15,19 +15,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const buttons = document.querySelectorAll(".nav-button");
     const contentArea = document.getElementById("content-area");
 
-    if(user_role != 2 && user_role != 999) { //기획 요청으로 숨김(2025-07-14) 개발자만 표시
-    //(user_role == 5 || user_role == 6 || user_role == null) { // 일반사용자 또는 외부사용자
-        document.getElementById("contents-button").style.display = "none"; // 학습 버튼 숨김
-        //document.getElementById("opinion-button").style.display = "none"; // 의견 버튼 숨김
-    }
-
-    // 담당자 관리 버튼은 role_id가 1, 2, 999일 때만 표시
+    // 컨텐츠/담당자 관리 버튼은 role_id가 1, 2, 999일 때만 표시
     console.log("User role:", user_role);
     if(!(user_role === 1 || user_role === 2 || user_role === 999)) {
-        console.log("Hiding manager admin button for role:", user_role);
-        document.getElementById("manager-admin-button").style.display = "none";
+        console.log("Hiding content manager admin button for role:", user_role);
+        const contentManagerAdminButton = document.getElementById("content-manager-admin-button");
+        if(contentManagerAdminButton) {
+            contentManagerAdminButton.style.display = "none";
+        }
     } else {
-        console.log("Showing manager admin button for role:", user_role);
+        console.log("Showing content manager admin button for role:", user_role);
     }
 
     if(!(user_role === 1 || user_role ===2 || user_role === 999)){ // 통합관리자 또는 개발관리자가 아닐 때
@@ -64,31 +61,31 @@ document.addEventListener("DOMContentLoaded", () => {
     if(logoutButton)
     {
         logoutButton.addEventListener("click", logout);
-    } 
-    
-    const managerAdminButton = document.getElementById("manager-admin-button");
-    if(managerAdminButton) {
-        managerAdminButton.addEventListener("click", openManagerAdmin);
-        console.log("Manager admin button found and event listener added");
+    }
+
+    const contentManagerAdminButton = document.getElementById("content-manager-admin-button");
+    if(contentManagerAdminButton) {
+        contentManagerAdminButton.addEventListener("click", openContentManagerAdmin);
+        console.log("Content Manager Admin button found and event listener added");
     } else {
-        console.error("Manager admin button not found!");
+        console.error("Content Manager Admin button not found!");
     }
 });
 
-function openManagerAdmin() {
-    console.log("Opening manager admin page");
+function openContentManagerAdmin() {
+    console.log("Opening Content Manager Admin page");
     // Remove active class from all nav buttons
     const navButtons = document.querySelectorAll(".nav-button");
     navButtons.forEach(btn => btn.classList.remove("active"));
-    
-    // Add active class to manager admin button
-    const managerAdminButton = document.getElementById("manager-admin-button");
-    if(managerAdminButton) {
-        managerAdminButton.classList.add("active");
+
+    // Add active class to content manager admin button
+    const contentManagerAdminButton = document.getElementById("content-manager-admin-button");
+    if(contentManagerAdminButton) {
+        contentManagerAdminButton.classList.add("active");
     }
-    
-    // Load manager admin page in the content frame
-    loadContent("manager_admin.html");
+
+    // Load unified content manager admin page in the content frame
+    loadContent("content_manager_admin.html");
 }
 
 async function logout(){
