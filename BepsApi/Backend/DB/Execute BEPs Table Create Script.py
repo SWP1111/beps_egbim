@@ -7,7 +7,7 @@ from psycopg2 import sql
 
 # PostgreSQL 데이터베이스에 연결
 connection = psycopg2.connect(
-    host="172.16.10.191",   # 데이터베이스 호스트
+    host="172.16.8.216",   # 데이터베이스 호스트
     port=15432,             # 데이터베이스 포트
     database="postgres",    # 데이터베이스 이름
     user="postgres",    # 데이터베이스 사용자 이름
@@ -42,7 +42,7 @@ finally:
 
 # beps 데이터베이스에 연결
 connection = psycopg2.connect(
-    host="172.16.10.191",   # 데이터베이스 호스트
+    host="172.16.8.216",   # 데이터베이스 호스트
     port=15432,
     database="beps",    # 데이터베이스 이름
     user="postgres",    # 데이터베이스 사용자 이름

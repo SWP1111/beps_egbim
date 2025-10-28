@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # PostgreSQL 데이터베이스 연결 설정
 # 포맷: postgresql://username:password@hostname/database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@172.16.10.191:15432/beps'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@172.16.8.216:15432/beps'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SQLAlchemy 초기화

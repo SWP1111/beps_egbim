@@ -12,7 +12,7 @@ description: |
   **요청 예시 (JavaScript - fetch):**
 
   ```javascript
-  fetch('http://172.16.10.191:20000/learning/end', {
+  fetch('http://172.16.8.216:20000/learning/end', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',  

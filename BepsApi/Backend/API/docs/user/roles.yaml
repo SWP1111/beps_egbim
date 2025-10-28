@@ -8,7 +8,7 @@ description: |
   **예시 (JavaScript - fetch):**
 
   ```javascript
-  fetch('http://172.16.10.191/user/roles', {
+  fetch('http://172.16.8.216:20000/user/roles', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'

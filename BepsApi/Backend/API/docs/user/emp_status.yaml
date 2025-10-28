@@ -9,7 +9,7 @@ description: |
   **예시 (JavaScript - fetch):**
 
   ```javascript
-  fetch('http://172.16.10.191:20000/user/emp_status', {
+  fetch('http://172.16.8.216:20000/user/emp_status', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
