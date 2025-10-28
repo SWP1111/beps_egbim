@@ -75,7 +75,10 @@ async function authenticatedFetch(url, options = {}) {
         headers['Content-Type'] = 'application/json';
     }
 
-    return fetch(url, {
+    // Construct full URL using baseUrl from config.js
+    const fullUrl = url.startsWith('http') ? url : `${window.baseUrl}${url.replace(/^\//, '')}`;
+
+    return fetch(fullUrl, {
         credentials: 'include',
         ...options,
         headers

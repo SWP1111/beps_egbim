@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/WorkProjects/beps_egbim/beps_egbim/**)",
+      "Bash(PGPASSWORD=postgres psql:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
