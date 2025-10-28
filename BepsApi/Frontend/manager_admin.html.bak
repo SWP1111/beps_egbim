@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>담당자 관리</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="asset/css/manager_admin.css">
+    <script src="asset/js/config.js"></script>
+    <script src="asset/js/verifyCookie.js"></script>
+    <script defer src="asset/js/manager_admin.js?v=202508271336"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>담당자 관리</h1>
+        
+        <div class="permission-section">
+            <div class="permission-header">
+                <h2>담당자 권한 추가</h2>
+            </div>
+            
+            <div class="input-table">
+                <table>
+                    <thead>
+                        <tr id="input-table-header">
+                            <th>채널</th>
+                            <th class="folder1-col">폴더</th>
+                            <th class="folder2-col">폴더2</th>
+                            <th class="folder3-col">폴더3</th>
+                            <th class="file-col">페이지</th>
+                            <th class="manager-col">담당자</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <select id="channel-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="folder1-col">
+                                <select id="folder1-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="folder2-col">
+                                <select id="folder2-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="folder3-col">
+                                <select id="folder3-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="file-col">
+                                <select id="file-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="manager-col">
+                                <div class="manager-selection">
+                                    <div class="manager-row">
+                                        <input type="text" id="manager-input" placeholder="담당자 ID">
+                                        <button id="add-btn">추가</button>
+                                    </div>
+                                    <div class="manager-row user-comboboxes">
+                                        <select id="company-select" class="user-combobox">
+                                            <option value="">회사명</option>
+                                        </select>
+                                        <select id="department-select" class="user-combobox">
+                                            <option value="">부서</option>
+                                        </select>
+                                        <select id="position-select" class="user-combobox">
+                                            <option value="">직책</option>
+                                        </select>
+                                        <select id="name-select" class="user-combobox">
+                                            <option value="">이름</option>
+                                        </select>
+                                    </div>
+                                    <div class="manager-row">
+                                        <span id="validation-message" class="validation-message">담당자 ID를 입력하거나 소속 정보를 통해 선택하세요</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="error-message" class="error"></div>
+            
+            <div class="permissions-list">
+                <div class="list-header">
+                    <h2>현재 권한 목록</h2>
+                    <button id="refresh-btn" class="refresh-btn">새로고침</button>
+                </div>
+                <table id="permissions-table">
+                    <thead>
+                        <tr>
+                            <th class="permission-type-col">권한
+범위</th>
+                            <th>채널</th>
+                            <th class="folder1-col">폴더</th>
+                            <th class="folder2-col">폴더2</th>
+                            <th class="folder3-col">폴더3</th>
+                            <th class="file-col">페이지</th>
+                            <th class="company-col">회사명</th>
+                            <th class="department-col">부서</th>
+                            <th class="position-col">직책</th>
+                            <th class="name-col">이름</th>
+                            <th class="id-col">ID</th>
+                            <th class="action-col">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="permissions-list-body">
+                        <!-- Permission entries will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

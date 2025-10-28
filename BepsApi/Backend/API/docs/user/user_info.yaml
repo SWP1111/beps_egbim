@@ -1,0 +1,105 @@
+tags:
+  - User
+summary: "인증된 사용자 전용 사용자 정보 조회 API"
+operationId: user_info
+description: |
+  인증된 사용자만 접근할 수 있는 사용자 정보 조회 API입니다.
+  요청 헤더에 'Authorization'을 포함해야 합니다.
+  
+  **예시 (JavaScript - fetch):**
+  
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/user_info?id={사번}', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+  });
+  ```
+
+  **응답 예시:**
+
+  ```json
+  {
+    "access_group_id": null,
+    "company": "삼안",
+    "department": "기술개발센터 그래픽스개발Division CCP&BEPs팀",
+    "email": "b23009@hanmaceng.co.kr",
+    "id": "b23009",
+    "is_deleted": false,
+    "login_time": "Thu, 26 Jun 2025 04:57:35 GMT",
+    "logout_time": "Thu, 26 Jun 2025 04:57:45 GMT",
+    "name": "정나래",
+    "phone": "+82-1057367469",
+    "position": "선임",
+    "role_id": 1,
+    "time_stamp": 1750913865    
+  }
+  ```
+
+parameters:
+  - name: id
+    in: query
+    required: true
+    type: string
+    description: "사용자 사번 (id)"
+
+responses:
+  200:
+    description: 사용자 정보 조회 성공
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            access_group_id:
+              type: string
+              nullable: true
+            company:
+              type: string
+            department:
+              type: string
+            email:
+              type: string
+            id:
+              type: string
+            is_deleted:
+              type: boolean
+            login_time:
+              type: string
+              format: date-time
+            logout_time:
+              type: string
+              format: date-time
+            name:
+              type: string
+            phone:
+              type: string
+            position:
+              type: string
+            role_id:
+              type: integer
+            time_stamp:
+              type: integer
+
+  401:
+    description: 인증 실패 (토큰이 유효하지 않거나 누락됨)
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Unauthorized"
+
+  500:
+    description: 서버 오류
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Server error"

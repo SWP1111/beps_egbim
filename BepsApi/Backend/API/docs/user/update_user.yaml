@@ -1,0 +1,139 @@
+tags:
+  - User
+summary: "사용자 정보 추가 및 업데이트 API"
+operationId: update_user
+description: |
+  사용자 정보를 추가하거나 업데이트하는 API입니다.
+  사용자의 사번(id)과 업데이트할 정보를 포함한 JSON 객체를 요청 본문에 전달합니다.
+  업데이트할 정보는 선택적으로 포함할 수 있으며, 각 필드의 값이 @ 또는 -1인 경우 해당 정보는 업데이트하지 않습니다.
+  
+  **예시 (JavaScript - fetch):**
+  
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/update_user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id: '<user_id>',
+      company: 'New Company',
+      department: 'New Department',
+      position: 'New Position',
+      name: 'New Name',
+      access_group_id: 'New Access Group ID',
+      role_id: 'New Role ID',
+      phone: '+82-123-456-7890',
+      email: 'new_email@example.com'
+    })
+  });
+  ```
+
+  **응답 예시:**
+  
+  ```json
+  {
+    id: '<user_id>',
+    company: 'New Company',
+    department: 'New Department',
+    position: 'New Position',
+    name: 'New Name',
+    access_group_id: 'New Access Group ID',
+    role_id: 'New Role ID',
+    phone: '+82-123-456-7890',
+    email: 'new_email@example.com'
+  }
+  ```
+
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "사용자 사번 (id)"
+        company:
+          type: string
+          description: "회사명"
+        department:
+          type: string
+          description: "부서명"
+        position:
+          type: string
+          description: "직급"
+        name:
+          type: string
+          description: "이름"
+        access_group_id:
+          type: string
+          description: "접근 그룹 ID"
+        role_id:
+          type: integer
+          description: "역할 ID"
+        phone:
+          type: string
+          description: "전화번호"
+        email:
+          type: string
+          description: "이메일 주소"
+responses:
+  201:
+    description: 사용자 정보가 성공적으로 추가되거나 업데이트되었습니다.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            id:
+              type: string
+              description: "사용자 사번 (id)"
+            company:
+              type: string
+              description: "회사명"
+            department:
+              type: string
+              description: "부서명"
+            position:
+              type: string
+              description: "직급"
+            name:
+              type: string
+              description: "이름"
+            access_group_id:
+              type: string
+              description: "접근 그룹 ID"
+            role_id:
+              type: integer
+              description: "역할 ID"
+            phone:
+              type: string
+              description: "전화번호"
+            email:
+              type: string
+              description: "이메일 주소"
+
+  400:
+    description: 요청이 잘못되었습니다. 필수 필드가 누락되었거나 잘못된 형식입니다.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: "오류 메시지"
+              example: "잘못된 요청 형식입니다."
+  500:
+    description: 서버 오류가 발생했습니다.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: "오류 메시지"
+              example: "서버 오류가 발생했습니다."

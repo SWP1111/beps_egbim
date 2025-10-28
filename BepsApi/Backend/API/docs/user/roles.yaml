@@ -1,0 +1,134 @@
+tags:
+  - User
+summary: "권한 테이블 조회 API"
+operationId: roles
+description: |
+  권한 테이블을 조회하는 API입니다. 
+
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191/user/roles', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  ```
+
+  **응답 예시:**
+
+  ```json
+  [
+    {
+      "role_id": 1,
+      "role_name": "SuperAdmin",
+      "description": {
+        "note": "모든 항목 확인",
+        "user_info": "all",
+        "contents_info": true,
+        "opinion_point": true,
+        "contents_upload": true,
+        "opinion_response": true
+        }
+    },
+    {
+      "role_id": 2,
+      "role_name": "DevAdmin",
+      "description": {
+        "note": "모든 항목 확인",
+        "user_info": "all",
+        "contents_info": true,
+        "opinion_point": false,
+        "contents_upload": true,
+        "opinion_response": false
+        }
+      },
+      {
+        "role_id": 3,
+        "role_name": "ContentAdmin",
+        "description": {
+          "note": "Contents 총괄 관리자",
+          "user_info": "single",
+          "contents_info": true,
+          "opinion_point": true,
+          "contents_upload": false,
+          "opinion_response": true
+          }
+      },
+      {
+        "role_id": 4,
+        "role_name": "ContentEditor",
+        "description": {
+          "note": "Content 제작 실무자",
+          "user_info": "single",
+          "contents_info": true,
+          "opinion_point": true,
+          "contents_upload": false,
+          "opinion_response": true
+          }
+      },
+      {
+        "role_id": 5,
+        "role_name": "InternalUser",
+        "description": {
+          "note": "일반 사내 사용자",
+          "user_info": "single",
+          "contents_info": false,
+          "opinion_point": false,
+          "contents_upload": false,
+          "opinion_response": false
+          }
+      },
+      {
+        "role_id": 6,
+        "role_name": "External",
+        "description": {
+          "note": "일반 사외 사용자",
+          "user_info": "none",
+          "contents_info": false,
+          "opinion_point": false,
+          "contents_upload": false,
+          "opinion_response": false
+          }
+      }
+  ]
+  ```
+
+responses:
+  '200':
+    description: "성공적으로 권한 테이블을 조회했습니다."
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              role_id:
+                type: integer
+                description: "역할 ID"
+              role_name:
+                type: string
+                description: "역할 이름"
+              description:
+                type: object
+                properties:
+                  note:
+                    type: string
+                    description: "권한 설명"
+                  user_info:
+                    type: string
+                    description: "학습 페이지 열람 권한(관리자/개인)"
+                  contents_info:
+                    type: boolean
+                    description: "콘텐츠 정보 확인 권한"
+                  opinion_point:
+                    type: boolean
+                    description: "의견 포인트 부여 권한"
+                  contents_upload:
+                    type: boolean
+                    description: "콘텐츠 업로드 권한"
+                  opinion_response:
+                    type: boolean
+                    description: "의견 응답 권한"

@@ -1,0 +1,106 @@
+tags:
+  - User
+summary: "직원 상태 업데이트 API"
+operationId: emp_status
+description: |
+  직원의 상태를 업데이트합니다. 이 API는 직원의 상태를 활성화, 비활성화 등으로 변경할 수 있습니다.
+  status 필드는 'active'(재직), 'inactive'(퇴사) 로 설정할 수 있습니다.
+
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/emp_status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      email: '<user_email>',
+      status: 'inactive'  // 'active' 또는 'inactive'
+    })
+  })
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));
+  ```
+
+  **응답 예시:**
+
+  ```json
+  {
+    "email": "<user_email>",
+    "status": "inactive",
+  }
+  ```
+parameters:
+  - in: body
+    name: body
+    required: true
+    description: 직원 상태 업데이트 정보
+    schema:
+      type: object
+      properties:
+        email:
+          type: string
+          description: 직원의 이메일 주소
+          example: "b23009@hanmaceng.co.kr"
+        status:
+          type: string
+          enum: ['active', 'inactive']
+          description: 직원의 상태 ('active' 또는 'inactive')
+          example: "inactive"
+
+responses:
+  '200':
+    description: 직원 상태 업데이트 성공
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              description: 업데이트된 직원의 이메일
+            status:
+              type: string
+              description: 업데이트된 직원의 상태 ('active' 또는 'inactive')
+  '400':
+    description: 잘못된 요청
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지
+  '403':
+    description: 접근 거부 (허용되지 않은 IP)
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지
+  '404':
+    description: 직원이 존재하지 않음
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지
+  '500':
+    description: 서버 오류
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지

@@ -1,0 +1,25 @@
+.search-container::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  .custom-scrollbar {
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 6px;
+    background: transparent;
+    position: relative;
+    height: 295px;
+    left: 5px;
+    top: 0px;
+    bottom: 0;
+    box-sizing: border-box;
+    display: none;
+  }
+  
+  .custom-scrollbar-thumb {
+    width: 100%;
+    height: 30px;
+    background-color: #ccc;
+    border-radius: 6px;
+  }
+  

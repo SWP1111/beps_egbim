@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>학습 현황</title>
+        <link rel="stylesheet" href="asset/css/progress.css">
+        <script src="asset/js/config.js"></script>
+        <!--  <script src="https://unpkg.com/vue@3"></script> --> <!--개발용-->
+        <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.prod.js"></script> <!-- 운영용 -->
+        <script defer src="asset/js/progress.js"></script>
+    </head>
+    <body>
+
+        <div id="app" class="progress-container">
+            
+            <div class="progress-filter">
+                
+                <div v-if="isAdmin" class="search-group">
+                    <select v-model="searchUserType">
+                        <option value="all">전체</option>
+                        <option value="user_id">사번</option>
+                        <option value="user_name">이름</option>
+                    </select>
+                    <input type="text" id="searchUserId" :placeholder="searchUserPlaceholder" v-model="searchUserId" :disabled="searchUserType == 'all'">    
+                </div>
+
+                <input type="text" id="searchFileName" placeholder="파일명 검색" v-model="searchFileName">
+                <input type="date" id="searchStartDate" v-model="searchStartDate">
+                <span>~</span>
+                <input type="date" id="searchEndDate" v-model="searchEndDate">
+                <button @click="loadProgressData(1)">검색</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>사번</th>
+                            <th>이름</th>
+                            <th>파일명</th>
+                            <th>시작 시간</th>
+                            <th>종료 시간</th>
+                            <th>학습 시간</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>                   
+                    <tbody>
+                        <tr v-for="(item, index) in progressList" :key="index">
+                            <td>{{ item.user_id }}</td>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.file_name }}</td>
+                            <td>{{ item.start_time }}</td>
+                            <td>{{ item.end_time }}</td>
+                            <td>{{ item.stay_duration }}</td>
+                            <td>{{ item.ip_address }}</td>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination">
+                <button v-if="currentPage > 1" @click="loadProgressData(currentPage - 1)">◀ 이전</button>
+                <button v-for="page in visiblePages" :key="page" 
+                        :class="{ active: page === currentPage }"
+                        @click="page !== '...' ? loadProgressData(page) : null">
+                        {{ page }}
+                </button>
+                <button v-if="currentPage < totalPages" @click="loadProgressData(currentPage + 1)">다음 ▶</button>
+            </div>
+        </div>
+    </body>
+</html>

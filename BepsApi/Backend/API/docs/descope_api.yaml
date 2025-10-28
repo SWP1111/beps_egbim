@@ -1,0 +1,46 @@
+tags:
+  - Descope
+summary: "Descope 사용자 정보 조회 API"
+operationId: get_user_info
+description: |
+  Descope에서 사용자 정보를 조회합니다. 요청 헤더에 'X-Descope-Refresh-Token'을 포함해야 합니다.
+
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/descope/get_user_info', {
+      method: 'GET',
+      headers: {
+          'X-Descope-Refresh-Token': refreshToken
+      }
+  })
+  .then(res => res.json())
+  .then(data => {
+      console.log(data);
+  });
+parameters:
+  - name: X-Descope-Refresh-Token
+    in: header
+    required: true
+    description: Descope에서 발급받은 Refresh Token
+    schema:
+      type: string
+    example: descope_refresh_token
+responses:
+  '200':
+    description: 사용자 정보 조회 성공
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            customAttributes:
+              type: string
+              description: 사용자 정보
+            email:
+              type: string
+              description: 사용자 이메일
+  '400':
+    description: 잘못된 요청 (Refresh Token 누락 등)
+  '500':
+    description: 서버 오류

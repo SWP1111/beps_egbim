@@ -1,0 +1,777 @@
+html, body {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    /* min-height: calc(100vh - 70px); ✅ 이게 없으면 outer에서 scrollHeight가 작게 나옴 */
+    box-sizing: border-box;
+    overflow: hidden; 
+  }
+
+#map {
+    height: 225px;
+    width: 225px;
+    margin-left: 20px;
+    border-width: 0px 1px 1px 1px;
+    border-style: solid;
+    border-color: black;
+}
+
+.traffic {
+    display: flex;
+    flex-direction: column;
+    margin-left: 20px;
+    margin-top: 15px;
+    width: 227px;
+    height: auto;
+    border: none;
+    background-color: #fff;
+}
+
+.traffic span{
+    font-size: 15px;
+    font-weight: 700;
+    font-family: NotosansKR;   
+    align-self: center;
+    margin-top: -90px;
+}
+
+.gaugeChart
+{
+    width: 100%;
+    height: 227px;
+}
+
+.main-area {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    margin-right: 20px;
+    user-select: none;
+    flex: 1;
+}
+
+.header-area {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+.header-area .selected-period {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: NotosansKR;
+    color: #343434;
+    user-select: none;
+}
+
+.period-area {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+    margin-left: 5px;
+}
+
+.year-button {
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 17px;
+    user-select: none;
+    background-color: #fff;
+    border: none;
+    width: 60px;
+}
+.year-button.active {
+    background-color: #777777;
+    color: white;
+    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+}
+
+.dropdown .dropdown-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    border: none;
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 17px;
+    user-select: none;    
+}
+#year.dropdown-button {
+    width: 120px;
+}
+#half-year.dropdown-button {
+    width: 95px;
+}
+#quarter.dropdown-button {
+    width: 90px;
+}
+.dropdown .dropdown-button:focus {
+    outline: none;
+}
+.dropdown .dropdown-button.active {
+    background-color: #777777;
+    color: white;
+    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+}
+.dropdown .dropdown-button.active svg path {
+    fill: #fff;
+}
+
+.dropdown-list {
+  position: absolute;
+  background: white;
+  padding: 6px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 10;
+  min-width: 120px;
+  display: none;
+}
+
+.dropdown-list.show {
+    display: block;
+  }
+  
+.dropdown-list li {
+    list-style: none;
+  }
+  
+.dropdown-item {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.dropdown-item:hover {
+background-color: #f0f0f0;
+}
+
+.datepicker {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0px;
+}
+
+.datepicker input{
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    border: none;
+    outline: none;
+    color: #525252;
+    margin-top: 5px;
+}
+
+.apply-button {
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 15px;
+    background-color: #ffbcbc;
+    border-radius: 5px;
+    border: 1px solid black;
+    min-width: 80px;
+}
+
+.chart-area {
+    display: flex;
+    flex-direction: row;   
+    gap: 20px;
+    margin-top: 40px;
+    flex-shrink: 0;
+}
+
+.login-history-area {
+    display: flex;
+    flex: 2;
+    flex-direction: row;
+    justify-content: space-around;
+    background-color: #FFFFFF;
+    box-shadow: 2px 2px 30px 0 rgba(0, 0, 0, 0.2);
+    border-radius: 30px;
+    gap: 10px;
+    padding: 10px;
+}
+
+.login-history-area span{
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 20px;
+    margin-top: 10px;
+    margin-left: 40px;
+}
+
+.login-chart-area-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-left: 10px;
+    margin-right: 20px;
+    border-bottom: 1px solid rgba(0,0,0,1);
+}
+
+.login-history-area .login-total-value {
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 15px;
+    user-select: none;
+    background-color: #b1b1b1;
+    border: none;
+    border-radius: 20px;
+    text-align: center;    
+    padding: 0px 5px 0px 5px;
+    margin-right: 20px;
+    margin-left: 0px;
+    margin-bottom: 2px;
+}
+
+.login-chart {
+    width: 300px;
+    height: 300px;
+}
+
+.login-external-button {
+    position:absolute; 
+    right: 20%; 
+    bottom: 20%; 
+    background-color: white; 
+    border: none; 
+    cursor: pointer;
+    /* visibility: hidden; */
+}
+
+.learning-rate-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1.5;
+    background-color: #FFFFFF;
+    box-shadow: 2px 2px 30px 0 rgba(0, 0, 0, 0.2);
+    border-radius: 30px;
+    margin-left: 20px;
+    gap: 10px;
+    padding: 10px 25px 10px 25px;
+}
+
+.learning-rate-area-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: first baseline;
+    margin-left: 5px;
+    border-bottom: 1px solid rgba(0,0,0,1);
+}
+
+.learning-rate-area-header span{
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 20px;
+    margin-top: 10px;
+    margin-left: 5px;
+}
+
+.learning-rate-container {
+    display: flex;
+    top: 10%;
+    flex-direction: column;
+    position: relative;
+    height: 260px;
+}
+
+.learning-rate-top-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-top: 20px;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.learning-rate-top-container img {
+    width: 72px;
+    height: 72px;
+}
+
+.learning-rate-avg-container {
+    position: absolute;
+    top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-left: 0px;
+    width: 100%;
+}
+
+.learning-rate-avg-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 0px;
+    width: 100%;
+    gap: 0px;
+    text-align: center;
+}
+
+.learning-rate-avg-container span {
+    font-family: 'NotoSansKR';
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.learning-rate-avg-area span {
+    margin-top: 10px; 
+    font-size: 30px; 
+}
+
+.learning-rate-avg-arrow {
+    position: absolute;
+    top: 71px;    
+    width: 25px;
+    height: 17px;
+    margin-top: 0px;
+}
+
+.learning-rate-bottom-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-top: 5px;
+    width: 100%;
+    justify-content: space-between;
+    font-weight: 700;
+    font-family: 'NotoSansKR';
+}
+
+.learning-rate-bottom-container-item {
+    display: flex; 
+    flex-direction: column;
+}
+
+.learning-pointer-container {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    font-weight: 700;
+    font-family: 'NotoSansKR';
+}
+
+.learning-pointer-content {    
+    display: inline-flex;
+    flex-direction: column;
+    width: fit-content;
+    max-width: 100px;
+    gap: 2px;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.learning-pointer-percent {
+    border: none;
+    border-bottom: 2px solid blue;
+    outline: none;
+    color: blue;
+    padding: 4px 0;
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 17px;
+    width: 35px;
+}
+
+.push-message-button {
+    border: 2px solid rgba(48,201,48,1);
+    border-radius: 10px;
+    background-color: transparent;    
+    padding: 0px 0px 0px 0px;
+    margin-left: -20px;
+    width: 85px;
+}
+
+.triangle-down {
+  width: 0;
+  height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 10px solid black;  /* 역삼각형 색상 */
+}
+
+.learning-rate-progress {
+    width: 100%;
+    height: 23px;
+    border-radius: 15px;
+    background: linear-gradient(to right, #29B81C 0%, #FF3131 100%);
+    margin-top: 10px;
+}
+
+.top-last-area {
+    display: flex;
+    flex: 1.5;
+    flex-direction: column;
+    gap: 20px;
+    margin-left: 0px;
+}
+
+.frame-area {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    background-color: #FFFFFF;
+    box-shadow: 2px 2px 30px 0 rgba(0, 0, 0, 0.2);
+    border-radius: 30px;
+    margin-left: 10px;
+    gap: 10px;
+    min-width: 450px;
+    padding: 20px 5px 20px 5px;
+    font-family: 'NotosansKR';
+    font-weight: 700;
+}
+
+.rank-area-header {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center; 
+    border-bottom: 1px solid black; 
+    gap: 10px;
+    margin-left: 40px; 
+    margin-right: 40px;
+    padding-bottom: 3px;
+    font-family: 'NotoSansKR';
+    font-weight: 700;
+}
+
+.top-bottom-selector {
+    background-color: white;
+    text-align: center; 
+    display: flex; 
+    align-items: center; 
+    gap: 5px; 
+    border-radius: 10px; 
+    border: none;
+    font-family: 'NotoSansKR';
+    font-weight: 700;
+}
+.top-bottom-selector.active {
+    background-color:rgba(253,224,224,1); 
+}
+
+.login-rank-type-selector {
+    border: none; 
+    background-color: transparent; 
+    cursor: pointer;
+}
+
+.login-rank-item > div {
+  flex-shrink: 0;
+}
+.login-rank-main {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.login-rank-item {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 33%;
+  width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow: hidden;
+  text-align: center; 
+  font-size: 15px;
+}
+
+.login-rank-item span {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.login-rank-item-area {
+    text-align: center; 
+    display: flex; 
+    align-items: center;
+    gap: 5px; 
+    border-radius: 10px; 
+    border: none;
+}
+
+.ellipse-button {
+  width: 5px;
+  height: 5px;
+  background-color: rgba(167,167,167,1);
+  border: none;
+  border-radius: 50%;
+  padding: 0;              /* 내부 여백 제거 */
+  font-size: 0;            /* 폰트 크기 제거 */
+  cursor: pointer;
+  }
+
+.ellipse-button.active {
+    background-color: black;
+}
+
+.updated-page-rank-item {
+    display: flex; 
+    justify-content: space-between; 
+    flex: 1; 
+    width:100%;
+}
+
+.updated-page-rank-item-name {
+    font-size: 15px; 
+    flex: 2; 
+    text-align: left; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis;
+}
+
+.updated-page-rank-item-updated {
+    font-size: 15px; 
+    flex: 1.2; 
+    text-align: center;
+}
+
+.updated-page-rank-item-manager {
+    font-size: 15px;
+    flex: 1; 
+    text-align: center;
+}
+
+.point {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 0px;  
+}
+
+.learning-area {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    margin-top: 50px;   
+}
+
+.category-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.top-viewed-pages{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 20px; 
+}
+
+.top-viewed-header {
+    display: flex; 
+    justify-content: space-between; 
+    border-bottom: 1px solid black; 
+    gap: 10px; 
+    padding-bottom: 3px; 
+    width: 490px;
+}
+
+.top-viewed-pages-main {
+    display: flex; 
+    flex-direction: column;
+    gap: 30px; 
+    margin-top: 80px;
+}
+
+.top-viewed-pages-item {
+    display:flex; 
+    flex-direction:row; 
+    font-family: 'NotosansKR'; 
+    font-weight: 700; 
+    font-size: 15px; 
+    border-bottom: 1px solid black; 
+    padding-bottom: 5px; 
+    width: 200px;
+}
+
+.top-viewed-pages-item span{
+    text-align: left; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis;
+    margin-right: 5px;
+}
+
+.top-viewed-memos{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 20px; 
+}
+
+.top-viewed-memo-item {
+    display:flex; 
+    flex-direction:row; 
+    font-family: 'NotosansKR'; 
+    font-weight: 700; 
+    font-size: 15px; 
+    border-bottom: 1px solid black; 
+    padding-bottom: 5px; 
+    width: 200px;
+}
+
+.top-viewed-first-item {
+    position:absolute; 
+    background-color: rgba(76,70,85,1); 
+    width: 296px;
+     height: 36px; 
+     margin-left: 195px; 
+     margin-top: -7px; 
+     border-radius: 0px 7px 7px 0px;
+}
+
+.top-viewed-second-item {
+    position:absolute; 
+    background-color: rgba(185,185,185,1); 
+    width: 240px; 
+    height: 36px;
+    margin-left: 195px; 
+    margin-top: -7px; 
+    border-radius: 0px 7px 7px 0px;
+}
+
+.top-viewed-third-item {
+    position:absolute; 
+    background-color: rgba(185,185,185,1); 
+    width: 130px; 
+    height: 36px; 
+    margin-left: 195px; 
+    margin-top: -7px; 
+    border-radius: 0px 7px 7px 0px;
+}
+
+.top-viewed-fourth-item {
+    position:absolute; 
+    background-color: rgba(185,185,185,1); 
+    width: 84px; 
+    height: 36px; 
+    margin-left: 195px; 
+    margin-top: -7px;
+    border-radius: 0px 7px 7px 0px;
+}
+
+.top-viewed-fifth-item {
+    position:absolute; 
+    background-color: rgba(185,185,185,1); 
+    width: 61px;
+    height: 36px;
+    margin-left: 195px; 
+    margin-top: -7px; 
+    border-radius: 0px 7px 7px 0px;
+}
+
+.top-viewed-item-modified {
+    position:absolute; 
+    font-family: 'NotosansKR';
+     font-weight: 700; 
+     font-size: 12px;
+     color: black; 
+     left: 5px; 
+     top: -45%; 
+     white-space: nowrap; 
+     overflow: hidden;
+}
+
+.top-viewed-item-count {
+    position:absolute; 
+    font-family: 'NotosansKR'; 
+    font-weight: 700; 
+    font-size: 15px; 
+    color: rgba(76,70,86,1); 
+    right: 10px; 
+    top: 22%;
+}
+
+.category-area {
+    background-color: #FFFFFF;
+    box-shadow: 2px 2px 30px 0 rgba(0, 0, 0, 0.2);
+    border-radius: 30px;
+    gap: 20px;
+    flex: 1;
+}
+
+.category-area span{
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 20px;
+    margin-top: 10px;
+}
+.category-area span.category-area-unit
+{
+    font-size: 15px;
+    margin-right: 20px;
+}
+.chart-area-header{
+    margin-left: 40px;
+    margin-right: 40px;
+    margin-top: 30px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,1);
+}
+.category-chart{
+    width: 530px;
+    height: 400px;
+}
+
+@media (min-width: 2000px) {
+ 
+.category-chart{
+    width: 700px;
+    height: 400px;
+}
+
+
+.login-chart {
+    width: 400px;
+    height: 400px;
+}
+
+
+.login-external-button {
+    right: 35%; 
+    bottom: 2%; 
+}
+
+}
+.top-viewed-memo-item > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    display: block;
+}

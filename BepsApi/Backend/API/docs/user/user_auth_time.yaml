@@ -1,0 +1,63 @@
+tags:
+  - User
+summary: "사용자 인증 시간 조회 API"
+operationId: user_auth_time
+description: |
+  사용자 인증 시간 조회 API입니다.
+  인증된 사용자의 로그인 및 로그아웃 시간을 조회합니다.
+
+  **예시 (JavaScript - fetch):**
+  
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/user_auth_time?id={user_id}')
+  {
+    method: 'GET'
+  });
+  ```
+
+  **응답 예시:**
+  
+  ```json
+  [
+    "Thu, 26 Jun 2025 04:57:35 GMT"
+  ]
+  ```
+
+parameters:
+  - name: id
+    in: query
+    required: true
+    type: string
+    description: "사용자 사번 (id)"
+    
+responses:
+  '200':
+    description: "성공"
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            type: string
+
+  '404':
+    description: "사용자를 찾을 수 없습니다."
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "사용자를 찾을 수 없습니다."
+
+  '500':
+    description: "서버 오류"
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "서버 오류가 발생했습니다."

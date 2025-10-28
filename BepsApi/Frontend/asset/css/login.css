@@ -1,0 +1,106 @@
+/* 전체 페이지 스타일 */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #eae3d9; 
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+/* 로그인 창 스타일 */
+.container {
+    background-color: #0e3b2e; /* 어두운 초록색 */
+    padding: 30px 60px 30px 60px; 
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* 제목 스타일 */
+h1 {
+    font-size: 28px;
+    font-weight: normal;
+    margin-bottom: 30px;
+}
+
+h1 strong {
+    font-size: 38px;
+    font-style: italic;
+    color: #e2b887; /* 베이지 톤 */
+}
+
+/* 입력 그룹 스타일 */
+.input-group {
+    display: flex;
+    align-items: center;
+    background-color: #e0e0e0;
+    border-radius: 25px;
+    margin-bottom: 15px;
+    /* overflow: hidden; */
+    width: 320px;
+    height: 50px; /* 전체 높이 고정 */
+    position: relative;
+}
+
+
+/* 왼쪽 버튼 스타일 */
+.input-label {
+    background: #1e4a94;
+    color: white;
+    border: 1px solid transparent;
+    outline: none;
+    font-size: 16px;
+    padding: 0 10px;
+    height: 100%;
+    flex: 1;
+    max-width: 120px;
+    min-width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    border-top-left-radius: 25px;
+    border-bottom-left-radius: 25px;
+    cursor: default;
+    box-shadow: none;
+    transform: scale(1.01);
+}
+
+/* 입력 필드 스타일 */
+input {
+    flex-grow: 1;
+    border: none;
+    padding: 0px 0px;
+    font-size: 16px;
+    background: none;
+    outline: none;
+    height: 100%;
+    z-index: 1; /* 버튼보다 아래에 위치 */
+    position: relative;
+    margin-left: 5px; /* 입력 필드가 왼쪽으로 밀리지 않도록 조정 */
+}
+
+/* 아이콘 스타일 */
+.icon {
+    padding: 10px;
+    font-size: 18px;
+}
+
+/* 버튼 스타일 */
+.login-button {
+    width: 100%;
+    max-width: 320px;
+    padding: 12px;
+    font-size: 18px;
+    background: #4a3626; /* 갈색 */
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.login-button:hover {
+    background: #3a2920;
+}

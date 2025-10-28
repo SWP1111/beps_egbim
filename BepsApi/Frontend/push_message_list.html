@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>푸시 메시지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 12px;
+            background-color: #fff;
+            color: #333;
+            padding: 15px;
+            margin: 0;
+        }
+
+        .header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .header h2 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .message-count {
+            font-size: 14px;
+            color: #000;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .message-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            padding: 15px;
+            background-color: #fff;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .message-icon {
+            display: block;
+            width: 20px;
+            height: 20px;
+            margin-bottom: 10px;
+        }
+
+        .message-content {
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.5;
+            color: #333;
+            word-wrap: break-word;
+            text-align: center;
+        }
+
+        .message-item:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .message-item.unread {
+            background-color: #e6e6e6;
+            border-color: #e6e6e6;
+            border-left: 4px solid #e6e6e6;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>학습독려 메세지</h2>
+    </div>
+    
+    <div class="message-count" id="messageCount" style="display: none;">
+        총 0건
+    </div>
+    
+    <div class="message-container" id="messageContainer">
+        <div class="empty-message">
+            메시지를 불러오는 중입니다...
+        </div>
+    </div>
+
+    <script>
+        let messageData = [];
+        const maxMessages = 5; // 최대 5개 메시지만 표시
+
+        // 부모 창에서 데이터를 받는 함수
+        function setPushMessageData(data) {
+            messageData = data || [];
+            displayMessages();
+        }
+
+        function displayMessages() {
+            const container = document.getElementById('messageContainer');
+            const countElement = document.getElementById('messageCount');
+            
+            if (!messageData || messageData.length === 0) {
+                container.innerHTML = '<div class="empty-message">표시할 메시지가 없습니다.</div>';
+                countElement.style.display = 'none';
+                return;
+            }
+
+            // 총 건수 표시
+            countElement.textContent = `총 ${messageData.length}건`;
+            countElement.style.display = 'block';
+
+            // 순서 뒤집기 (오래된 순 -> 최근 순)
+            const reversedMessages = [...messageData].reverse();
+
+            // 최대 5개까지만 표시
+            const messagesToShow = reversedMessages.slice(0, maxMessages);
+
+            // 메시지 표시
+            container.innerHTML = '';
+            messagesToShow.forEach(message => {
+                const messageElement = createMessageElement(message);
+                container.appendChild(messageElement);
+            });
+        }
+
+        function createMessageElement(message) {
+            const div = document.createElement('div');
+            div.className = `message-item ${message.is_read ? '' : 'unread'}`;
+            
+            div.innerHTML = `
+                <svg class="message-icon" width="20" height="20">
+                    <use href="asset/images/images.svg#blackbell" />
+                </svg>
+                <div class="message-content">${message.message || message.content || '메시지 내용이 없습니다.'}</div>
+                <div class="message-action" onclick="handleMessageClick(this)" style="cursor: pointer; font-size: 12px; margin-top: 8px; text-align: center;">[BEPs로 바로가기]</div>
+            `;
+            
+            return div;
+        }
+
+        // 메시지 클릭 이벤트 핸들러
+        function handleMessageClick(element) {
+            window.location.href = 'beps://'; // BEPs로 이동하는 링크 설정
+        }
+
+        // 부모창 상태 확인 및 창 닫기
+        function checkAndCloseIfParentClosed() {
+            if (!window.opener || window.opener.closed) {
+                window.close();
+            }
+        }
+        
+        // 창이 로드될 때 부모 창에서 데이터가 전달되기를 기다림
+        window.addEventListener('load', () => {
+            checkAndCloseIfParentClosed();
+            
+            // opener가 있고 데이터가 있다면 바로 표시
+            if (window.opener && window.opener.pushMessageData) {
+                setPushMessageData(window.opener.pushMessageData);
+            }
+            
+            console.log('Push message window loaded, opener:', window.opener);
+        });
+        
+        // 창이 포커스를 받을 때 부모창 상태 확인 및 데이터 업데이트
+        window.addEventListener('focus', () => {
+            checkAndCloseIfParentClosed();
+            if (window.opener && window.opener.pushMessageData) {
+                setPushMessageData(window.opener.pushMessageData);
+            }
+        });
+    </script>
+</body>
+</html>

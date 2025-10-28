@@ -1,0 +1,17 @@
+[Unit]
+Description=BEPs Websocket Handler
+After=network.target
+
+[Service]
+User=user_ccp
+Group=user_ccp
+WorkingDirectory=/home/user_ccp/service/BepsApi/Backend/Websocket
+
+ExecStart=/home/user_ccp/service/BepsApi/beps/bin/python3 websocket_handlers.py
+
+Restart=always
+RestartSec=3
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

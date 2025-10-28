@@ -1,0 +1,34 @@
+tags:
+  - User
+summary: "로그아웃 API"
+operationId: logout
+description: |
+  사용자가 로그아웃을 수행합니다.
+  로그인 기록에 종료 시간을 업데이트 합니다. 접속 시간이 30초 이하면 제거합니다.
+  쿠키를 삭제합니다.
+   
+  **요청 예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/logout', {
+    method: 'GET',
+    credentials: 'include'
+  });
+  ```
+  **응답 예시(jason):**
+
+  ```json
+  {
+    "message": "User b23009 logged out successfully",
+    "logout_time": "2023-10-01T12:00:00Z"
+  }
+  ```
+
+responses:
+  '200':
+    description: 로그아웃 성공
+  '404':
+    description: 사용자 정보 없음
+  '500':
+    description: 서버 오류
+

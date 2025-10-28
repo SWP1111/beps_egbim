@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>통계 미리보기</title>
+  <script src="asset/js/config.js"></script>
+  <style>
+    body 
+    { 
+        font-family: Arial, 
+        sans-serif; 
+        padding: 20px;
+        padding-bottom: 80px; 
+    }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
+    th, td { border: 1px solid #ccc; padding: 3px 4px; text-align: center; }
+    th { background-color: #f5f5f5; }
+    td { font-size: 12px;}
+
+    .tab-btn {
+        padding: 8px 16px;
+        background-color: #f2f2f2;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+    
+      .tab-btn.active {
+        background-color: #d0e1ff;
+        font-weight: bold;
+      }
+    
+      .sheet {
+        margin-top: 20px;
+      }
+
+      #sheet-tabs {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        border-top: 1px solid #ddd;
+        padding: 10px 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-start;
+      }
+
+  </style>
+</head>
+<body>
+    <div style="text-align: right; margin-bottom: 10px;">
+        <button onclick="downloadExcel()" id="download-button" class="tab-btn" disabled>엑셀 다운로드</button>
+    </div>
+    <a id="download-link" style="display: none;"></a>
+
+    <h2 id="date-range">통계 미리보기</h2>
+
+    <div id="loading-message" style="display:none;">📊 로딩 중입니다... 잠시만 기다려주세요.</div>
+
+    <!-- 탭 콘텐츠 -->
+    <div id="sheet-content" class="sheet active">
+      <div id="content-html"></div>
+    </div>
+  
+    <div id="sheet-org" class="sheet" style="display:none;">
+      <div id="org-html"></div>
+      <div id="org-pagination" style="display: flex; justify-content: center; text-align: center; margin-top: 10px; margin-bottom: 80px; gap: 5px;"></div>
+    </div>
+
+    <div id="sheet-user" class="sheet" style="display:none;">
+      <div id="user-html"></div>
+    </div>
+  
+    <!-- 하단 시트 버튼 -->
+    <div id="sheet-tabs" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; display: flex; gap: 10px;">
+      <button onclick="showSheet('content')" class="tab-btn active">전체컨텐츠</button>
+      <button onclick="showSheet('org')" class="tab-btn">회사&팀&직원</button>
+      <button id="user_tab_btn" onclick="showSheet('user')" class="tab-btn" style="display: none;">개인</button>
+    </div>
+
+  <script>
+    let download_button;
+    let loading_message;
+
+    let userHtmlFile = null;
+    let currentPage = 1;
+    let totalPages = 10; // 나중엔 서버에서 받아올 수도 있음
+
+    document.addEventListener("DOMContentLoaded", function() {
+        download_button = document.getElementById("download-button");
+        loading_message = document.getElementById("loading-message");
+        download_button.disabled = true;
+        loading_message.style.display = "block";
+
+        const title =  window.opener.document.getElementById("selected-period").textContent;
+        const dateRange = document.getElementById("date-range");
+        dateRange.textContent = `[통계 미리보기] ${title}`;
+
+        window.addEventListener("resize", updateIframeHeights);
+        updateIframeHeights();
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const apiUrl = `${window.baseUrl}statistics/preview?${params.toString()}`;
+    let filepath = null;
+
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        filepath = data.filename;
+
+        insertIframe('content-html', data.content_html_name);
+        userHtmlFile = data.org_html_name.split('/').pop();
+        loadUserHtmlPage(1);
+        if (data.user_html_name) {
+          insertIframe('user-html', data.user_html_name);
+          document.getElementById("user_tab_btn").style.display = "inline-block";
+        }
+      })
+      .catch(() => {
+        document.body.innerHTML = '<p>통계 데이터를 불러오지 못했습니다.</p>';
+      }).finally(() => {
+        loading_message.style.display = "none";
+        download_button.disabled = false;
+      });
+
+    function showSheet(type) {
+    // 콘텐츠 토글
+    document.getElementById('sheet-content').style.display = type === 'content' ? 'block' : 'none';
+    document.getElementById('sheet-org').style.display = type === 'org' ? 'block' : 'none';
+    document.getElementById('sheet-user').style.display = type === 'user' ? 'block' : 'none';
+    
+    // 버튼 상태 갱신 (하단 탭 버튼만 해당되도록 선택자 수정)
+    document.querySelectorAll('#sheet-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`#sheet-tabs .tab-btn[onclick*="${type}"]`).classList.add('active');
+    }
+
+    function downloadExcel() {
+        if(!filepath) {
+            alert('엑셀 파일이 준비되지 않았습니다.');
+            return;
+        }
+        
+        const title =  window.opener.document.getElementById("selected-period").textContent;
+
+        const encoded = encodeURIComponent(filepath);   // filepath는 서버에서 제공 -> encodeURIComponent로 인코딩
+        const link = document.getElementById('download-link');   // 다운로드 링크 생성
+        link.href = `${window.baseUrl}statistics/download?file_path=${encoded}&download_name=${title}`;
+        link.download ='';
+        link.click();   // 다운로드 링크를 클릭하여 파일 다운로드
+    }
+
+    function updateIframeHeights() {
+      const topOffset = document.getElementById('sheet-tabs').offsetHeight + 160;
+      const height = window.innerHeight - topOffset- 80;
+    
+      document.querySelectorAll('#content-html iframe, #org-html iframe #user-html iframe').forEach(iframe => {
+        iframe.style.height = `${height}px`;
+      });
+    }
+
+    function insertIframe(targetId, src) {
+      const topOffset = document.getElementById('sheet-tabs').offsetHeight + 160;
+      const height = window.innerHeight - topOffset - 80;
+    
+      const container = document.getElementById(targetId);
+      const iframe = document.createElement('iframe');
+      iframe.src = `${window.baseUrl}${src}`;
+      iframe.width = '100%';
+      iframe.style.border = 'none';
+      iframe.style.height = `${height}px`;
+    
+      // 로드 완료 후에도 높이 다시 적용 (resize 대응 포함)
+      iframe.onload = () => updateIframeHeights();
+    
+      container.innerHTML = '';
+      container.appendChild(iframe);
+    }
+
+    function loadUserHtmlPage(page) {
+      const url = `${window.baseUrl}statistics/preview/html_segment?filename=${userHtmlFile}&page=${page}&per_page=500`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("org-html").innerHTML = data.html;
+          totalPages = data.total_page;
+          renderPagination(page);
+        })
+        .catch(() => {
+          document.getElementById("org-html").innerHTML = "<p>불러오기 실패</p>";
+        });
+    }
+
+    function renderPagination(currentPage) {
+      const container = document.getElementById("org-pagination");
+      container.innerHTML = "";
+      const pageRange = 2; // Number of pages to show around the current page
+      
+      if (totalPages <= 1) return; // Don't render pagination if there's only one page or less
+
+      // Helper function to create a button
+      const createButton = (text, page, isActive = false, isDisabled = false) => {
+          const btn = document.createElement("button");
+          btn.innerHTML = text; // Use innerHTML for entities like &lt;
+          btn.className = "tab-btn";
+          if (isActive) btn.classList.add("active");
+          
+          if (isDisabled) {
+              btn.disabled = true;
+              btn.style.cursor = "not-allowed";
+              btn.style.opacity = "0.5";
+          } else {
+              btn.onclick = () => loadUserHtmlPage(page);
+          }
+          container.appendChild(btn);
+      };
+
+      // Helper function to create an ellipsis
+      const createEllipsis = () => {
+          const span = document.createElement("span");
+          span.innerText = "...";
+          span.style.padding = "8px 4px";
+          span.style.alignSelf = "center";
+          container.appendChild(span);
+      };
+
+      // Previous button
+      createButton("&lt;", currentPage - 1, false, currentPage === 1);
+
+      // Page numbers
+      let lastPageAdded = 0;
+      for (let i = 1; i <= totalPages; i++) {
+          // Conditions to show a page number:
+          // 1. It's the first page
+          // 2. It's the last page
+          // 3. It's within the range of the current page
+          const isFirstPage = i === 1;
+          const isLastPage = i === totalPages;
+          const isInRange = i >= currentPage - pageRange && i <= currentPage + pageRange;
+
+          if (isFirstPage || isLastPage || isInRange) {
+              // If there's a gap since the last page number, add an ellipsis
+              if (i > lastPageAdded + 1) {
+                  createEllipsis();
+              }
+              createButton(i, i, i === currentPage);
+              lastPageAdded = i;
+          }
+      }
+
+      // Next button
+      createButton("&gt;", currentPage + 1, false, currentPage === totalPages);
+    }
+
+  </script>
+</body>
+</html>

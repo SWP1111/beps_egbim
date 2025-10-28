@@ -1,0 +1,17 @@
+[Unit]
+Description=GitHub Webhook Listener
+After=network.target
+
+[Service]
+User=user_ccp
+WorkingDirectory=/home/user_ccp/service/webhook_listener
+Environment=PATH=/home/user_ccp/webhook_env/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/home/user_ccp/webhook_env/lib/python3.*/site-packages
+Environment=FLASK_APP=app.py
+ExecStart=/home/user_ccp/webhook_env/bin/gunicorn --workers 3 --bind 127.0.0.1:2003 app:app
+Restart=always
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target 
+

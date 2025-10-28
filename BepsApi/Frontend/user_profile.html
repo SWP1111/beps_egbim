@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://static.descope.com/npm/@descope/user-profile-widget@0.6.10/dist/index.js"></script>
+</head>
+<body>
+    <descope-user-profile-widget project-id="P2wON5fy1K6kyia269VpeIzYP8oP"
+                                 widget-id="user-profile-widget-standard-embedded"
+                                 style-id="signup-st-b"
+                                 theme="light"
+                                 debug="true">
+    </descope-user-profile-widget>
+
+                                 <!-- widget-id="user-profile-widget-standard-embedded" -->
+    <script>
+        //window.addEventListener('DOMContentLoaded', () => {
+        //    const w = document.querySelector('descope-user-profile-widget');
+        //
+        //    const tryPatch = () => {
+        //    const el = w?.shadowRoot?.querySelector(
+        //        'descope-user-attribute[data-id="customAttributes.familyUniqueKey"]'
+        //    );
+        //    if (!el) return false;
+        //
+        //    // 실제 표시되는 텍스트 노드(렌더 슬롯) 찾기
+        //    const disp = el.shadowRoot?.querySelector('[data-value], .value, [part="value"], .descope-value, span, div');
+        //    const val = w?.state?.me?.data?.customAttributes?.familyUniqueKey;
+        //
+        //    if (disp && val) {
+        //        disp.textContent = val;            // ← 화면에 강제로 값 보이게(진단용)
+        //        console.log('patched display to:', val);
+        //        return true;
+        //    }
+        //    return false;
+        //    };
+        //
+        //    const wait = setInterval(() => {
+        //    if (tryPatch()) clearInterval(wait);
+        //    }, 300);
+        //});
+
+        //window.addEventListener('DOMContentLoaded', () => {
+        //    const widget = document.querySelector('descope-user-profile-widget');
+        //
+        //    // state가 채워질 때까지 주기적으로 확인
+        //    const interval = setInterval(() => {
+        //        const attrs = widget?.state?.me?.data?.customAttributes;
+        //        if (attrs) {
+        //            console.log('customAttributes:', attrs);
+        //            clearInterval(interval);
+        //        }
+        //        else
+        //            console.log('customAttributes is not yet available');
+        //    }, 10);
+        //});
+    </script>
+</body>
+</html>

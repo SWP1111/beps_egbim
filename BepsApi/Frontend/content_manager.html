@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 문서 관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Malgun Gothic', sans-serif;
+        }
+        
+        body {
+            background-color: white;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .filter-bar {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f9f9f9;
+            display: flex;
+            align-items: center;
+        }
+        
+        .filter-label {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .tabs-container {
+            display: flex;
+            height: calc(100vh - 200px);
+            min-height: 500px;
+            border: 1px solid #ddd;
+        }
+        
+        .left-tab {
+            width: 25%;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+        }
+        
+        .right-tab {
+            width: 75%;
+            overflow-y: auto;
+        }
+        
+        .content-header, .file-header {
+            background-color: #f2f2f2;
+            padding: 12px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .content-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .content-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .file-list {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .file-list th {
+            background-color: #f2f2f2;
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        
+        .file-list td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        
+        .folder-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .folder-icon {
+            color: #ffc107;
+            margin-right: 8px;
+        }
+        
+        .file-icon {
+            color: #ff9800;
+            margin-right: 8px;
+        }
+        
+        /* Tree view styles */
+        .tree-view {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .tree-node {
+            padding: 5px 0;
+        }
+        
+        .tree-folder {
+            cursor: pointer;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tree-content {
+            padding-left: 20px;
+            display: none;
+        }
+        
+        .tree-content.expanded {
+            display: block;
+        }
+        
+        .toggle-icon {
+            display: inline-block;
+            width: 15px;
+            text-align: center;
+            margin-right: 5px;
+        }
+        
+        .tree-file {
+            display: grid;
+            grid-template-columns: minmax(200px, 2fr) 80px 1fr 1fr 1fr 1fr 1fr;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            gap: 10px;
+        }
+        
+        .file-details {
+            display: none; /* Hide the previous file details container */
+        }
+        
+        .file-detail {
+            padding: 0 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .file-name {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-name-content {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+        
+        .file-name-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        
+        /* Page detail styles */
+        .page-detail {
+            display: grid;
+            grid-template-columns: minmax(200px, 2fr) 80px 1fr 1fr 1fr 1fr 1fr;
+            align-items: center;
+            padding: 3px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 10px;
+            background-color: #fafafa;
+        }
+
+        .page-detail-name {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .page-detail-name-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .page-detail-icon {
+            color: #4caf50;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .page-detail-name-clickable {
+            cursor: pointer;
+            color: #1976d2;
+            text-decoration: underline;
+            font-size: 14px;
+        }
+
+        .page-detail-name-normal {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .page-detail-icon-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .detail-download-icon {
+            cursor: pointer;
+            color: #555;
+            font-size: 16px;
+            padding: 3px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        
+        .detail-download-icon:hover {
+            background-color: #f5f5f5;
+        }
+
+        .detail-upload-icon {
+            cursor: pointer;
+            color: #4caf50;
+            font-size: 16px;
+            padding: 3px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        
+        .detail-upload-icon:hover {
+            background-color: #e8f5e8;
+        }
+        
+        .new-badge {
+            display: inline-block;
+            background-color: #3f51b5;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .download-icon {
+            margin-left: auto;
+            cursor: pointer;
+            color: #555;
+        }
+        
+        .upload-icon {
+            cursor: pointer;
+            color: #4caf50;
+            font-size: 18px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .upload-icon:hover {
+            background-color: #e8f5e8;
+        }
+        
+        .modify-icon {
+            cursor: pointer;
+            color: #ff9800;
+            font-size: 18px;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .modify-icon:hover {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .actions-column {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .file-name-clickable {
+            cursor: pointer;
+            color: #1976d2;
+            text-decoration: underline;
+        }
+        
+        .file-name-normal {
+            color: inherit;
+        }
+        
+        /* Image modal styles */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .image-modal-content {
+            position: relative;
+            margin: 5% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        
+        .image-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+        
+        .image-modal-close:hover {
+            color: #000;
+        }
+        
+        .image-modal img {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+        
+        .image-modal-title {
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: flex-end;
+        }
+        
+        .add-btn, .remove-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .add-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .remove-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .bottom-actions {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .loading {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .selected {
+            background-color: #e3f2fd;
+        }
+
+        .file-header {
+            background-color: #f2f2f2;
+            padding: 12px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+            display: grid;
+            grid-template-columns: minmax(200px, 2fr) 80px 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="filter-bar">
+            <span class="filter-label">처리상태</span>
+            <div class="filter-options">
+                <label class="filter-option">
+                    <input type="checkbox" checked id="filter-all"> 전체
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked id="filter-reviewing"> 검토중
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked id="filter-rejected"> 반려
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked id="filter-approved"> 승인
+                </label>
+                <label class="filter-option">
+                    <input type="checkbox" checked id="filter-updated"> 업데이트
+                </label>
+            </div>
+        </div>
+        
+        <div class="tabs-container">
+            <!-- 좌측 콘텐츠 탭 -->
+            <div class="left-tab">
+                <div class="content-header">콘텐츠</div>
+                
+                <!-- 콘텐츠 목록 - 동적으로 채워질 영역 -->
+                <div id="content-list">
+                    <div class="loading">콘텐츠를 불러오는 중입니다...</div>
+                </div>
+                
+                <!-- 좌측 탭 하단 버튼 -->
+                <div class="bottom-actions">
+                    <div>
+                        <button class="add-btn" id="add-content">+</button>
+                        <button class="remove-btn" id="remove-content">-</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 우측 파일 탭 -->
+            <div class="right-tab">
+                <div class="file-header">
+                    <div>파일명</div>
+                    <div>작업</div>
+                    <div>버전</div>
+                    <div>작성자</div>
+                    <div>검토자</div>
+                    <div>등록일</div>
+                    <div>처리상태</div>
+                </div>
+                <div id="file-tree-view" class="tree-view">
+                    <div class="loading">채널을 선택하면 파일 구조가 표시됩니다.</div>
+                </div>
+                
+                <!-- 우측 탭 하단 버튼 -->
+                <div class="bottom-actions">
+                    <div>
+                        <button class="add-btn" id="add-file">+</button>
+                        <button class="remove-btn" id="remove-file">-</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <div class="image-modal-content">
+            <span class="image-modal-close">&times;</span>
+            <div class="image-modal-title" id="imageModalTitle">이미지 보기</div>
+            <img id="imageModalImg" src="" alt="파일 이미지">
+        </div>
+    </div>
+    
+    <script>
+        // Authentication check and role-based access control
+        document.addEventListener('DOMContentLoaded', function() {
+            const userInfo = JSON.parse(localStorage.getItem("loggedInUser") || "{}");
+            const roleId = userInfo && userInfo.user ? userInfo.user.role_id : null;
+            const userId = userInfo && userInfo.user ? userInfo.user.id : null;
+            
+            // Store user role ID for later access control checks
+            window.userRoleId = roleId;
+            window.userId = userId;
+            
+            // For completely restricted areas (development only)
+            if (document.getElementById('filter-all') && roleId !== 1 && roleId !== 2 && roleId !== 999) {
+                document.body.innerHTML = `
+                    <div style="text-align: center; margin-top: 50px; color: #f44336;">
+                        <h1>접근 권한이 없습니다</h1>
+                        <p style="font-size: 1.5rem;">이 페이지는 관리자 권한이 필요합니다.</p>
+                        <p>현재 당신의 권한은 ${roleId || "없음"}입니다.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Continue with normal page initialization
+            initializeContentManager();
+            setupFilterHandlers();
+            setupTreeViewEventHandlers();
+        });
+        
+        // 상태 관리
+        let currentSelectedChannel = null;
+        let hierarchyData = null;
+        let userAccessibleFolders = []; // For restricted users
+        let userAccessibleFiles = []; // For restricted users
+        let r2FileExistenceCache = {}; // Cache for R2 file existence checks
+        
+        // DOM 요소
+        const contentListElement = document.getElementById('content-list');
+        const fileTreeViewElement = document.getElementById('file-tree-view');
+        
+        // 🔑 Authentication helper function
+        function authenticatedFetch(url, options = {}) {
+            // Get JWT token from localStorage
+            const userInfo = JSON.parse(localStorage.getItem("loggedInUser") || "{}");
+            const jwtToken = userInfo.token;
+            
+            if (!jwtToken) {
+                console.error('🚫 No JWT token found in localStorage');
+                throw new Error('Authentication token not found');
+            }
+            
+            // Add Authorization header
+            const headers = {
+                'Authorization': `Bearer ${jwtToken}`,
+                ...options.headers
+            };
+            
+            // Only add Content-Type if not uploading FormData
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            
+            console.log('🔑 Making authenticated request to:', url);
+            console.log('🔑 JWT token found (length):', jwtToken.length);
+            
+            return fetch(url, {
+                credentials: 'include',
+                ...options,
+                headers
+            });
+        }
+        
+        // 필터 핸들러 설정
+        function setupFilterHandlers() {
+            const filterCheckboxes = document.querySelectorAll('.filter-options input[type="checkbox"]');
+            filterCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (currentSelectedChannel) {
+                        renderFolderFileStructure(currentSelectedChannel);
+                    }
+                });
+            });
+        }
+
+        // 트리 뷰 이벤트 핸들러 설정
+        function setupTreeViewEventHandlers() {
+            // 이벤트 위임을 통해 폴더 토글 기능 구현
+            document.getElementById('file-tree-view').addEventListener('click', function(e) {
+                const target = e.target.closest('.tree-folder');
+                if (target) {
+                    const content = target.nextElementSibling;
+                    if (content && content.classList.contains('tree-content')) {
+                        content.classList.toggle('expanded');
+                        
+                        // 토글 아이콘 변경
+                        const toggleIcon = target.querySelector('.toggle-icon');
+                        if (toggleIcon) {
+                            toggleIcon.textContent = content.classList.contains('expanded') ? '▼' : '►';
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 콘텐츠 매니저 초기화
+        async function initializeContentManager() {
+            try {
+                contentListElement.innerHTML = '<div class="loading">콘텐츠 구조를 불러오는 중입니다...</div>';
+                
+                // 전체 계층 구조 가져오기 (API 사용)
+                hierarchyData = await getContentHierarchy();
+                
+                if (!hierarchyData) {
+                    throw new Error('계층 구조를 가져오는데 실패했습니다.');
+                }
+                
+                // 일반 사용자인 경우 접근 가능한 항목 필터링
+                if (window.userRoleId !== 1 && window.userRoleId !== 2 && window.userRoleId !== 999) {
+                    await getUserAccessibleContent();
+                    filterHierarchyForUser();
+                }
+                
+                // 채널 목록 렌더링
+                renderChannels();
+                
+            } catch (error) {
+                console.error('콘텐츠 구조를 가져오는 중 오류가 발생했습니다:', error);
+                contentListElement.innerHTML = '<div class="loading">콘텐츠 구조를 불러오는데 실패했습니다. 다시 시도해 주세요.</div>';
+            }
+        }
+        
+        // API를 통해 계층 구조 가져오기
+        async function getContentHierarchy() {
+            try {
+                // API 엔드포인트 호출
+                const response = await fetch('/contents/hierarchy');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Hierarchy response error:', errorText);
+                    throw new Error(`계층 구조를 가져오는데 실패했습니다: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('계층 구조를 불러오는 중 오류가 발생했습니다:', error);
+                return null;
+            }
+        }
+        
+        // 사용자가 접근할 수 있는 콘텐츠 가져오기 (일반 사용자용)
+        async function getUserAccessibleContent() {
+            try {
+                // API 엔드포인트 호출
+                const response = await fetch(`/contents/user-accessible?user_id=${window.userId}`);
+                if (!response.ok) {
+                    throw new Error(`접근 가능한 콘텐츠를 가져오는데 실패했습니다: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                userAccessibleFolders = data.folderIds || [];
+                userAccessibleFiles = data.fileIds || [];
+                
+            } catch (error) {
+                console.error('사용자 접근 가능 콘텐츠를 가져오는 중 오류가 발생했습니다:', error);
+                userAccessibleFolders = [];
+                userAccessibleFiles = [];
+            }
+        }
+        
+        // 사용자 권한에 따라 계층 구조 필터링
+        function filterHierarchyForUser() {
+            if (!hierarchyData || !hierarchyData.channels) {
+                return;
+            }
+            
+            // 접근 가능한 채널만 필터링
+            hierarchyData.channels = hierarchyData.channels.filter(channel => {
+                // 채널 내 폴더 필터링
+                channel.folders = filterFoldersForUser(channel.folders || []);
+                
+                // 접근 가능한 폴더가 있는 채널만 표시
+                return channel.folders.length > 0;
+            });
+        }
+        
+        // 폴더 필터링 (재귀 함수)
+        function filterFoldersForUser(folders) {
+            return folders.filter(folder => {
+                // 이 폴더가 접근 가능한지 확인
+                const isAccessible = userAccessibleFolders.includes(folder.id);
+                
+                // 하위 폴더 필터링
+                if (folder.subfolders && folder.subfolders.length > 0) {
+                    folder.subfolders = filterFoldersForUser(folder.subfolders);
+                }
+                
+                // 파일 필터링
+                if (folder.pages && folder.pages.length > 0) {
+                    folder.pages = folder.pages.filter(page => 
+                        userAccessibleFiles.includes(page.id)
+                    );
+                }
+                
+                // 이 폴더가 접근 가능하거나 접근 가능한 하위 항목이 있으면 포함
+                return isAccessible || 
+                       (folder.subfolders && folder.subfolders.length > 0) || 
+                       (folder.pages && folder.pages.length > 0);
+            });
+        }
+        
+        // 채널 목록 렌더링
+        function renderChannels() {
+            contentListElement.innerHTML = '';
+            
+            if (!hierarchyData || !hierarchyData.channels || hierarchyData.channels.length === 0) {
+                contentListElement.innerHTML = '<div class="loading">표시할 채널이 없습니다.</div>';
+                return;
+            }
+            
+            hierarchyData.channels.forEach(channel => {
+                const contentItem = document.createElement('div');
+                contentItem.className = 'content-item';
+                contentItem.dataset.id = channel.id;
+                
+                const folderItem = document.createElement('div');
+                folderItem.className = 'folder-item';
+                
+                const folderIcon = document.createElement('span');
+                folderIcon.className = 'folder-icon';
+                folderIcon.innerHTML = '&#128193;';
+                
+                folderItem.appendChild(folderIcon);
+                folderItem.appendChild(document.createTextNode(channel.name));
+                
+                if (channel.is_new) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'new-badge';
+                    newBadge.textContent = 'NEW';
+                    folderItem.appendChild(newBadge);
+                }
+                
+                contentItem.appendChild(folderItem);
+                contentListElement.appendChild(contentItem);
+                
+                // 클릭 이벤트 처리
+                contentItem.addEventListener('click', function() {
+                    selectChannel(channel.id);
+                });
+            });
+        }
+        
+        // 채널 선택 처리
+        function selectChannel(channelId) {
+            // 이미 선택된 항목의 스타일 제거
+            const contentItems = document.querySelectorAll('.content-item');
+            contentItems.forEach(item => item.classList.remove('selected'));
+            
+            // 현재 선택된 항목 스타일 지정
+            const selectedItem = document.querySelector(`.content-item[data-id="${channelId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+            
+            currentSelectedChannel = channelId;
+            renderFolderFileStructure(channelId);
+        }
+        
+        // 폴더 및 파일 구조 렌더링
+        function renderFolderFileStructure(channelId) {
+            fileTreeViewElement.innerHTML = '';
+            
+            if (!hierarchyData || !hierarchyData.channels) {
+                fileTreeViewElement.innerHTML = '<div class="loading">폴더 및 파일 구조를 불러오는데 실패했습니다.</div>';
+                return;
+            }
+            
+            // 선택된 채널 찾기
+            const selectedChannel = hierarchyData.channels.find(channel => channel.id === channelId);
+            
+            if (!selectedChannel || !selectedChannel.folders || selectedChannel.folders.length === 0) {
+                fileTreeViewElement.innerHTML = '<div class="loading">표시할 폴더 및 파일이 없습니다.</div>';
+                return;
+            }
+            
+            // 필터 상태 가져오기
+            const filters = {
+                all: document.getElementById('filter-all').checked,
+                reviewing: document.getElementById('filter-reviewing').checked,
+                rejected: document.getElementById('filter-rejected').checked,
+                approved: document.getElementById('filter-approved').checked,
+                updated: document.getElementById('filter-updated').checked
+            };
+            
+            // 채널 계층 구조 가져오기 (필터 포함)
+            fetchChannelHierarchy(channelId, filters);
+        }
+        
+        // 채널의 계층 구조 가져오기 (API 사용)
+        async function fetchChannelHierarchy(channelId, filters) {
+            try {
+                fileTreeViewElement.innerHTML = '<div class="loading">폴더 및 파일 구조를 불러오는 중입니다...</div>';
+                
+                // 필터 JSON 직렬화
+                const filtersParam = encodeURIComponent(JSON.stringify(filters));
+                
+                // API 엔드포인트 호출
+                const response = await fetch(`/contents/hierarchy/channel/${channelId}?filters=${filtersParam}`);
+                if (!response.ok) {
+                    throw new Error(`채널 계층 구조를 가져오는데 실패했습니다: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // 계층 구조 표시
+                renderHierarchyTree(data);
+            } catch (error) {
+                console.error('채널 계층 구조를 가져오는 중 오류가 발생했습니다:', error);
+                fileTreeViewElement.innerHTML = '<div class="loading">폴더 및 파일 구조를 불러오는데 실패했습니다. 다시 시도해 주세요.</div>';
+            }
+        }
+
+        // 폴더가 현재 필터에 맞는지 확인하는 함수
+        function folderMatchesFilter(folder) {
+            // 모든 항목 필터가 활성화되어 있으면 모든 폴더 포함
+            if (document.getElementById('filter-all').checked) {
+                return true;
+            }
+            
+            // 하위 폴더나 파일이 현재 필터에 맞는 항목을 포함하고 있는지 확인
+            if (folder.subfolders && folder.subfolders.length > 0) {
+                return folder.subfolders.some(subfolder => folderMatchesFilter(subfolder));
+            }
+            
+            // 이 폴더의 파일 중 필터에 맞는 것이 있는지 확인
+            if (folder.pages && folder.pages.length > 0) {
+                const filterReviewing = document.getElementById('filter-reviewing').checked;
+                const filterRejected = document.getElementById('filter-rejected').checked;
+                const filterApproved = document.getElementById('filter-approved').checked;
+                const filterUpdated = document.getElementById('filter-updated').checked;
+                
+                return folder.pages.some(page => 
+                    (filterReviewing && page.status === '검토중') ||
+                    (filterRejected && page.status === '반려') ||
+                    (filterApproved && page.status === '승인') ||
+                    (filterUpdated && page.status === '업데이트')
+                );
+            }
+            
+            return false;
+        }
+
+        // 계층 구조 트리 렌더링
+        function renderHierarchyTree(data) {
+            fileTreeViewElement.innerHTML = '';
+            
+            const folders = data.folders || [];
+            
+            if (folders.length === 0) {
+                fileTreeViewElement.innerHTML = '<div class="loading">표시할 폴더 및 파일이 없습니다.</div>';
+                return;
+            }
+            
+            // 폴더를 이름 기준 오름차순으로 정렬
+            folders.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // 트리 구조 생성
+            const treeRoot = document.createElement('ul');
+            treeRoot.className = 'tree-view';
+            
+            // 폴더 렌더링
+            folders.forEach(folder => {
+                const folderNode = createFolderNode(folder, 0);
+                treeRoot.appendChild(folderNode);
+            });
+            
+            fileTreeViewElement.appendChild(treeRoot);
+            
+            // 모든 파일 ID 수집하고 R2 존재 여부 일괄 확인
+            const allFileIds = collectAllFileIds(data);
+            if (allFileIds.length > 0) {
+                batchCheckR2Existence(allFileIds);
+            }
+        }
+        
+        // 데이터에서 모든 파일 ID 수집 (재귀 함수)
+        function collectAllFileIds(data) {
+            let fileIds = [];
+            
+            function collectFromFolders(folders) {
+                folders.forEach(folder => {
+                    // 이 폴더의 페이지들
+                    if (folder.pages && folder.pages.length > 0) {
+                        folder.pages.forEach(page => {
+                            fileIds.push(page.id);
+                        });
+                    }
+                    
+                    // 하위 폴더들 재귀 처리
+                    if (folder.subfolders && folder.subfolders.length > 0) {
+                        collectFromFolders(folder.subfolders);
+                    }
+                });
+            }
+            
+            if (data.folders) {
+                collectFromFolders(data.folders);
+            }
+            
+            return fileIds;
+        }
+        
+        // R2 파일 존재 여부 일괄 확인
+        async function batchCheckR2Existence(fileIds) {
+            try {
+                console.log(`🔍 Checking R2 existence for ${fileIds.length} files...`);
+                
+                const response = await authenticatedFetch('/contents/files/r2-batch-check', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        file_ids: fileIds
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`R2 일괄 확인 실패: ${response.status}`);
+                }
+                
+                const results = await response.json();
+                
+                // 캐시에 결과 저장
+                Object.assign(r2FileExistenceCache, results);
+                
+                console.log(`✅ R2 existence check complete. Found ${Object.keys(results).filter(id => results[id].r2_exists).length} files with R2 images.`);
+                
+                // UI 업데이트
+                updateFileNodesWithR2Status();
+                
+            } catch (error) {
+                console.error('R2 일괄 확인 중 오류:', error);
+                // 오류 발생 시 개별 확인으로 폴백하지 않고 기존 방식 사용
+            }
+        }
+        
+        // R2 상태에 따라 파일 노드 UI 업데이트
+        function updateFileNodesWithR2Status() {
+            // 모든 파일 노드 찾기
+            const fileNodes = document.querySelectorAll('.tree-file');
+            
+            fileNodes.forEach(fileNode => {
+                const fileId = fileNode.closest('.tree-node').dataset.id;
+                const r2Status = r2FileExistenceCache[fileId];
+                
+                if (!r2Status) return;
+                
+                // 파일명 요소 및 액션 컬럼 찾기
+                const fileNameText = fileNode.querySelector('.file-name-content .file-name-text');
+                const actionsColumn = fileNode.parentNode.querySelector('.actions-column');
+                
+                if (!fileNameText || !actionsColumn) return;
+                
+                // 기존 아이콘들 제거
+                actionsColumn.innerHTML = '';
+                
+                if (r2Status.r2_exists) {
+                    // R2에 파일이 존재 - 클릭 가능하게 만들고 수정 아이콘 추가
+                    fileNameText.className = 'file-name-clickable file-name-text';
+                    fileNameText.style.cursor = 'pointer';
+                    fileNameText.style.color = '#1976d2';
+                    fileNameText.style.textDecoration = 'underline';
+                    
+                    // 클릭 이벤트 제거 후 재추가
+                    const newFileNameText = fileNameText.cloneNode(true);
+                    fileNameText.parentNode.replaceChild(newFileNameText, fileNameText);
+                    
+                    newFileNameText.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showImageModal(fileId, newFileNameText.textContent);
+                    });
+                    
+                    // 수정 아이콘 추가
+                    const newModifyIcon = document.createElement('span');
+                    newModifyIcon.className = 'modify-icon';
+                    newModifyIcon.innerHTML = '&#9998;'; // Edit/pencil icon
+                    newModifyIcon.title = '이미지 수정';
+                    newModifyIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        modifyImage(fileId);
+                    });
+                    
+                    actionsColumn.appendChild(newModifyIcon);
+                    
+                } else {
+                    // R2에 파일이 없음 - 일반 텍스트로 만들고 업로드 아이콘 추가
+                    fileNameText.className = 'file-name-normal file-name-text';
+                    fileNameText.style.cursor = 'default';
+                    fileNameText.style.color = 'inherit';
+                    fileNameText.style.textDecoration = 'none';
+                    
+                    // 클릭 이벤트 제거
+                    const newFileNameText = fileNameText.cloneNode(true);
+                    fileNameText.parentNode.replaceChild(newFileNameText, fileNameText);
+                    
+                    // 업로드 아이콘 추가
+                    const newUploadIcon = document.createElement('span');
+                    newUploadIcon.className = 'upload-icon';
+                    newUploadIcon.innerHTML = '&#8593;'; // Upload arrow
+                    newUploadIcon.title = '이미지 업로드';
+                    newUploadIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        uploadImage(fileId);
+                    });
+                    
+                    actionsColumn.appendChild(newUploadIcon);
+                }
+            });
+        }
+        
+        // 단일 파일 노드의 R2 상태 업데이트
+        function updateSingleFileNodeR2Status(fileId) {
+            const fileNode = document.querySelector(`.tree-node[data-id="${fileId}"] .tree-file`);
+            if (!fileNode) return;
+            
+            const r2Status = r2FileExistenceCache[fileId];
+            if (!r2Status) return;
+            
+            // 파일명 요소 및 액션 컬럼 찾기
+            const fileNameText = fileNode.querySelector('.file-name-content .file-name-text');
+            const actionsColumn = fileNode.parentNode.querySelector('.actions-column');
+            
+            if (!fileNameText || !actionsColumn) return;
+            
+            // 기존 아이콘들 제거
+            actionsColumn.innerHTML = '';
+            
+            if (r2Status.r2_exists) {
+                // R2에 파일이 존재 - 클릭 가능하게 만들고 수정 아이콘 추가
+                fileNameText.className = 'file-name-clickable file-name-text';
+                fileNameText.style.cursor = 'pointer';
+                fileNameText.style.color = '#1976d2';
+                fileNameText.style.textDecoration = 'underline';
+                
+                // 클릭 이벤트 제거 후 재추가
+                const newFileNameText = fileNameText.cloneNode(true);
+                fileNameText.parentNode.replaceChild(newFileNameText, fileNameText);
+                
+                newFileNameText.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showImageModal(fileId, newFileNameText.textContent);
+                });
+                
+                // 수정 아이콘 추가
+                const newModifyIcon = document.createElement('span');
+                newModifyIcon.className = 'modify-icon';
+                newModifyIcon.innerHTML = '&#9998;'; // Edit/pencil icon
+                newModifyIcon.title = '이미지 수정';
+                newModifyIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    modifyImage(fileId);
+                });
+                
+                actionsColumn.appendChild(newModifyIcon);
+                
+            } else {
+                // R2에 파일이 없음 - 일반 텍스트로 만들고 업로드 아이콘 추가
+                fileNameText.className = 'file-name-normal file-name-text';
+                fileNameText.style.cursor = 'default';
+                fileNameText.style.color = 'inherit';
+                fileNameText.style.textDecoration = 'none';
+                
+                // 클릭 이벤트 제거
+                const newFileNameText = fileNameText.cloneNode(true);
+                fileNameText.parentNode.replaceChild(newFileNameText, fileNameText);
+                
+                // 업로드 아이콘 추가
+                const newUploadIcon = document.createElement('span');
+                newUploadIcon.className = 'upload-icon';
+                newUploadIcon.innerHTML = '&#8593;'; // Upload arrow
+                newUploadIcon.title = '이미지 업로드';
+                newUploadIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    uploadImage(fileId);
+                });
+                
+                actionsColumn.appendChild(newUploadIcon);
+            }
+        }
+        
+        // 폴더 노드 생성 (재귀 함수)
+        function createFolderNode(folder, depth = 0) {
+            const folderLi = document.createElement('li');
+            folderLi.className = 'tree-node';
+            folderLi.dataset.id = folder.id;
+            
+            // 폴더 이름 및 아이콘
+            const folderDiv = document.createElement('div');
+            folderDiv.className = 'tree-folder';
+            
+            const toggleIcon = document.createElement('span');
+            toggleIcon.className = 'toggle-icon';
+            toggleIcon.textContent = '►';
+            
+            const folderIcon = document.createElement('span');
+            folderIcon.className = 'folder-icon';
+            folderIcon.innerHTML = '&#128193;';
+            
+            folderDiv.appendChild(toggleIcon);
+            folderDiv.appendChild(folderIcon);
+            folderDiv.appendChild(document.createTextNode(folder.name));
+            
+            if (folder.is_new) {
+                const newBadge = document.createElement('span');
+                newBadge.className = 'new-badge';
+                newBadge.textContent = 'NEW';
+                folderDiv.appendChild(newBadge);
+            }
+            
+            folderLi.appendChild(folderDiv);
+            
+            // 서브 폴더 및 파일을 포함하는 컨테이너
+            const contentUl = document.createElement('ul');
+            contentUl.className = 'tree-content';
+            
+            // 서브 폴더 렌더링 (필터 적용)
+            if (folder.subfolders && folder.subfolders.length > 0) {
+                const filteredSubfolders = folder.subfolders.filter(subfolder => 
+                    folderMatchesFilter(subfolder)
+                );
+                
+                // 서브폴더를 이름 기준 오름차순으로 정렬
+                filteredSubfolders.sort((a, b) => a.name.localeCompare(b.name));
+                
+                filteredSubfolders.forEach(subfolder => {
+                    const subfolderNode = createFolderNode(subfolder, depth + 1);
+                    contentUl.appendChild(subfolderNode);
+                });
+            }
+            
+            // 파일 렌더링 (필터 적용)
+            if (folder.pages && folder.pages.length > 0) {
+                const filters = {
+                    all: document.getElementById('filter-all').checked,
+                    reviewing: document.getElementById('filter-reviewing').checked,
+                    rejected: document.getElementById('filter-rejected').checked,
+                    approved: document.getElementById('filter-approved').checked,
+                    updated: document.getElementById('filter-updated').checked
+                };
+                
+                const filteredFiles = folder.pages.filter(page => {
+                    // 모든 파일 포함 또는 특정 상태 파일 포함
+                    return filters.all || 
+                           (filters.reviewing && page.status === '검토중') ||
+                           (filters.rejected && page.status === '반려') ||
+                           (filters.approved && page.status === '승인') ||
+                           (filters.updated && page.status === '업데이트');
+                });
+                
+                // 파일을 이름 기준 오름차순으로 정렬
+                filteredFiles.sort((a, b) => (a.name || '제목 없음').localeCompare(b.name || '제목 없음'));
+                
+                filteredFiles.forEach(page => {
+                    const fileLi = document.createElement('li');
+                    fileLi.className = 'tree-node';
+                    fileLi.dataset.id = page.id;
+                    
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'tree-file';
+                    
+                    // 파일 이름 및 아이콘 (첫 번째 열)
+                    const fileNameDiv = document.createElement('div');
+                    fileNameDiv.className = 'file-name';
+                    
+                    // 내부 컨테이너 생성하여 패딩 적용 (깊이에 따른 들여쓰기)
+                    const fileNameContent = document.createElement('div');
+                    fileNameContent.className = 'file-name-content';
+                    // 깊이별 들여쓰기 계산 (각 깊이 레벨당 20px)
+                    fileNameContent.style.paddingLeft = `${(depth + 1) * 20}px`;
+                    
+                    const fileIcon = document.createElement('span');
+                    fileIcon.className = 'file-icon';
+                    fileIcon.innerHTML = '&#128196;';
+                    
+                    fileNameContent.appendChild(fileIcon);
+                    
+                    // Create filename text element (initially without checking)
+                    // R2 existence will be checked in batch after tree is rendered
+                    const fileNameText = document.createElement('span');
+                    fileNameText.textContent = page.name || '제목 없음';
+                    fileNameText.className = 'file-name-normal file-name-text'; // Default state with text truncation
+                    
+                    fileNameContent.appendChild(fileNameText);
+                    
+                    if (page.is_new) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'new-badge';
+                        newBadge.textContent = 'NEW';
+                        fileNameContent.appendChild(newBadge);
+                    }
+                    
+                    fileNameDiv.appendChild(fileNameContent);
+                    fileDiv.appendChild(fileNameDiv);
+                    
+                    // Actions column (새로운 작업 열)
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'actions-column';
+                    
+                    // Initially add upload icon (will be updated after R2 check)
+                    const uploadIcon = document.createElement('span');
+                    uploadIcon.className = 'upload-icon';
+                    uploadIcon.innerHTML = '&#8593;'; // Upload arrow
+                    uploadIcon.title = '이미지 업로드';
+                    uploadIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        uploadImage(page.id);
+                    });
+                    
+                    actionsDiv.appendChild(uploadIcon);
+                    fileDiv.appendChild(actionsDiv);
+                    
+                    // 버전 열
+                    const versionDiv = document.createElement('div');
+                    versionDiv.className = 'file-detail';
+                    versionDiv.textContent = page.version || '1.0';
+                    fileDiv.appendChild(versionDiv);
+                    
+                    // 작성자 열
+                    const authorDiv = document.createElement('div');
+                    authorDiv.className = 'file-detail';
+                    authorDiv.textContent = page.author || '-';
+                    fileDiv.appendChild(authorDiv);
+                    
+                    // 검토자 열
+                    const reviewerDiv = document.createElement('div');
+                    reviewerDiv.className = 'file-detail';
+                    reviewerDiv.textContent = page.reviewer || '-';
+                    fileDiv.appendChild(reviewerDiv);
+                    
+                    // 등록일 열
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'file-detail';
+                    dateDiv.textContent = page.registration_date || '-';
+                    fileDiv.appendChild(dateDiv);
+                    
+                    // 처리상태 열
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'file-detail';
+                    statusDiv.textContent = page.status || '검토중';
+                    fileDiv.appendChild(statusDiv);
+                    
+                    fileLi.appendChild(fileDiv);
+                    contentUl.appendChild(fileLi);
+
+                    // Render page details under this page if they exist
+                    if (page.details && page.details.length > 0) {
+                        page.details.forEach(detail => {
+                            const detailLi = document.createElement('li');
+                            detailLi.className = 'tree-node';
+                            detailLi.dataset.id = detail.id;
+                            detailLi.dataset.type = 'page_detail';
+                            
+                            const detailDiv = document.createElement('div');
+                            detailDiv.className = 'page-detail';
+                            
+                            // Page detail name (first column) 
+                            const detailNameDiv = document.createElement('div');
+                            detailNameDiv.className = 'page-detail-name';
+                            
+                            const detailNameContent = document.createElement('div');
+                            detailNameContent.className = 'page-detail-name-content';
+                            // Add extra indentation for page details (20px more than parent page)
+                            detailNameContent.style.paddingLeft = `${(depth + 2) * 20}px`;
+                            
+                            const detailIcon = document.createElement('span');
+                            detailIcon.className = 'page-detail-icon';
+                            detailIcon.innerHTML = '&#128206;'; // Document icon
+                            
+                            detailNameContent.appendChild(detailIcon);
+                            
+                            // Check if detail has content (object_id is not null/empty)
+                            const hasContent = detail.has_content || (detail.object_id && detail.object_id.trim() !== '');
+                            
+                            // Create detail name text element
+                            const detailNameText = document.createElement('span');
+                            detailNameText.textContent = detail.name || '상세 정보';
+                            detailNameText.className = 'file-name-text'; // Apply text truncation
+                            
+                            if (hasContent) {
+                                // Detail has content - make it clickable for download
+                                detailNameText.classList.add('page-detail-name-clickable');
+                                detailNameText.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    downloadPageDetail(detail.id, detail.name);
+                                });
+                            } else {
+                                // Detail has no content - normal text
+                                detailNameText.classList.add('page-detail-name-normal');
+                            }
+                            
+                            detailNameContent.appendChild(detailNameText);
+                            detailNameDiv.appendChild(detailNameContent);
+                            detailDiv.appendChild(detailNameDiv);
+                            
+                            // Actions column for page details
+                            const detailActionsDiv = document.createElement('div');
+                            detailActionsDiv.className = 'actions-column';
+                            
+                            if (hasContent) {
+                                // Show download icon for details with content
+                                const downloadIcon = document.createElement('span');
+                                downloadIcon.className = 'detail-download-icon';
+                                downloadIcon.innerHTML = '&#8595;'; // Download arrow
+                                downloadIcon.title = '파일 다운로드';
+                                downloadIcon.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    downloadPageDetail(detail.id, detail.name);
+                                });
+                                detailActionsDiv.appendChild(downloadIcon);
+                            } else {
+                                // Show upload icon for details without content
+                                const uploadIcon = document.createElement('span');
+                                uploadIcon.className = 'detail-upload-icon';
+                                uploadIcon.innerHTML = '&#8593;'; // Upload arrow
+                                uploadIcon.title = '파일 업로드';
+                                uploadIcon.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    uploadPageDetailContent(detail.id);
+                                });
+                                detailActionsDiv.appendChild(uploadIcon);
+                            }
+                            
+                            detailDiv.appendChild(detailActionsDiv);
+                            
+                            // Empty columns for page details (they don't have version, author, etc.)
+                            for (let i = 0; i < 5; i++) {
+                                const emptyDiv = document.createElement('div');
+                                emptyDiv.className = 'file-detail';
+                                emptyDiv.textContent = '-';
+                                emptyDiv.style.color = '#ccc';
+                                detailDiv.appendChild(emptyDiv);
+                            }
+                            
+                            detailLi.appendChild(detailDiv);
+                            contentUl.appendChild(detailLi);
+                        });
+                    }
+                });
+            }
+            
+            folderLi.appendChild(contentUl);
+            
+            return folderLi;
+        }
+        
+        // 파일 다운로드
+        function downloadFile(fileId) {
+            console.log(`파일 다운로드: ${fileId}`);
+            
+            // 다운로드 API 엔드포인트 호출
+            window.location.href = `/contents/file/${fileId}/download`;
+        }
+        
+        // 이미지 업로드 (R2 기반)
+        function uploadImage(fileId) {
+            console.log(`이미지 업로드: ${fileId}`);
+            
+            // 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1 && window.userRoleId !== 2) {
+                alert('이미지 업로드 권한이 없습니다.');
+                return;
+            }
+            
+            // 파일 선택 다이얼로그 생성
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.multiple = false;
+            
+            fileInput.onchange = async function() {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    return;
+                }
+                
+                const imageFile = fileInput.files[0];
+                
+                // 파일 크기 검사 (100MB 제한)
+                if (imageFile.size > 100 * 1024 * 1024) {
+                    alert('파일 크기가 너무 큽니다. 100MB 이하의 파일을 선택해주세요.');
+                    return;
+                }
+                
+                try {
+                    // 1단계: 백엔드에서 R2 업로드 URL 요청
+                    console.log('R2 업로드 URL 요청 중...');
+                    const urlResponse = await authenticatedFetch(`/contents/file/${fileId}/r2-upload-url`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            filename: imageFile.name,
+                            content_type: imageFile.type,
+                            file_size: imageFile.size
+                        })
+                    });
+                    
+                    if (!urlResponse.ok) {
+                        throw new Error(`R2 업로드 URL 생성 실패: ${urlResponse.status}`);
+                    }
+                    
+                    const urlData = await urlResponse.json();
+                    console.log('R2 업로드 URL 받음:', urlData.upload_url);
+                    
+                    // 2단계: R2에 직접 업로드
+                    console.log('R2에 직접 업로드 중...');
+                    const uploadResponse = await fetch(urlData.upload_url, {
+                        method: 'PUT',
+                        body: imageFile,
+                        headers: {
+                            'Content-Type': imageFile.type
+                        }
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const errorText = await uploadResponse.text();
+                        console.error('❌ R2 upload failed:', {
+                            status: uploadResponse.status,
+                            statusText: uploadResponse.statusText,
+                            headers: Object.fromEntries(uploadResponse.headers.entries()),
+                            body: errorText
+                        });
+                        throw new Error(`R2 업로드 실패: ${uploadResponse.status} - ${errorText}`);
+                    }
+                    
+                    console.log('R2 업로드 완료');
+                    
+                    // 3단계: 백엔드에 업로드 완료 확인
+                    console.log('업로드 완료 확인 중...');
+                    const confirmResponse = await authenticatedFetch(`/contents/file/${fileId}/confirm-r2-upload`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            object_key: urlData.object_key,
+                            filename: imageFile.name
+                        })
+                    });
+                    
+                    if (!confirmResponse.ok) {
+                        throw new Error(`업로드 확인 실패: ${confirmResponse.status}`);
+                    }
+                    
+                    const confirmData = await confirmResponse.json();
+                    console.log('업로드 확인 완료:', confirmData);
+                    
+                    alert('이미지가 성공적으로 업로드되었습니다.');
+                    
+                    // R2 캐시 업데이트
+                    r2FileExistenceCache[fileId] = {
+                        r2_exists: true,
+                        object_key: urlData.object_key
+                    };
+                    
+                    // 해당 파일 노드만 업데이트
+                    updateSingleFileNodeR2Status(fileId);
+                    
+                    // 전체 목록을 새로고침하지 않고 캐시된 정보만 업데이트
+                    
+                } catch (error) {
+                    console.error('이미지 업로드 중 오류가 발생했습니다:', error);
+                    alert(`이미지 업로드 중 오류가 발생했습니다: ${error.message}`);
+                }
+            };
+            
+            fileInput.click();
+        }
+        
+        // 이미지 수정 (R2 기반)
+        function modifyImage(fileId) {
+            console.log(`이미지 수정: ${fileId}`);
+            
+            // 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1 && window.userRoleId !== 2) {
+                alert('이미지 수정 권한이 없습니다.');
+                return;
+            }
+            
+            // 확인 창
+            if (!confirm('기존 이미지를 새로운 이미지로 교체하시겠습니까?')) {
+                return;
+            }
+            
+            // 파일 선택 다이얼로그 생성
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.multiple = false;
+            
+            fileInput.onchange = async function() {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    return;
+                }
+                
+                const imageFile = fileInput.files[0];
+                
+                // 파일 크기 검사 (100MB 제한)
+                if (imageFile.size > 100 * 1024 * 1024) {
+                    alert('파일 크기가 너무 큽니다. 100MB 이하의 파일을 선택해주세요.');
+                    return;
+                }
+                
+                try {
+                    // 1단계: 백엔드에서 R2 업로드 URL 요청 (수정용)
+                    console.log('수정용 R2 업로드 URL 요청 중...');
+                    const urlResponse = await authenticatedFetch(`/contents/file/${fileId}/r2-upload-url`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            filename: imageFile.name,
+                            content_type: imageFile.type,
+                            file_size: imageFile.size,
+                            is_modify: true  // 수정 모드임을 표시
+                        })
+                    });
+                    
+                    if (!urlResponse.ok) {
+                        throw new Error(`R2 업로드 URL 생성 실패: ${urlResponse.status}`);
+                    }
+                    
+                    const urlData = await urlResponse.json();
+                    console.log('R2 업로드 URL 받음:', urlData.upload_url);
+                    
+                    // 2단계: R2에 직접 업로드
+                    console.log('R2에 직접 업로드 중...');
+                    const uploadResponse = await fetch(urlData.upload_url, {
+                        method: 'PUT',
+                        body: imageFile,
+                        headers: {
+                            'Content-Type': imageFile.type
+                        }
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const errorText = await uploadResponse.text();
+                        console.error('❌ R2 upload failed:', {
+                            status: uploadResponse.status,
+                            statusText: uploadResponse.statusText,
+                            headers: Object.fromEntries(uploadResponse.headers.entries()),
+                            body: errorText
+                        });
+                        throw new Error(`R2 업로드 실패: ${uploadResponse.status} - ${errorText}`);
+                    }
+                    
+                    console.log('R2 업로드 완료');
+                    
+                    // 3단계: 백엔드에 이미지 수정 확인
+                    console.log('이미지 수정 확인 중...');
+                    const confirmResponse = await authenticatedFetch(`/contents/file/${fileId}/modify-r2-image`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            object_key: urlData.object_key,
+                            filename: imageFile.name
+                        })
+                    });
+                    
+                    if (!confirmResponse.ok) {
+                        throw new Error(`이미지 수정 확인 실패: ${confirmResponse.status}`);
+                    }
+                    
+                    const confirmData = await confirmResponse.json();
+                    console.log('이미지 수정 완료:', confirmData);
+                    
+                    alert('이미지가 성공적으로 수정되었습니다.');
+                    
+                    // R2 캐시 업데이트
+                    r2FileExistenceCache[fileId] = {
+                        r2_exists: true,
+                        object_key: urlData.object_key
+                    };
+                    
+                    // 해당 파일 노드만 업데이트
+                    updateSingleFileNodeR2Status(fileId);
+                    
+                } catch (error) {
+                    console.error('이미지 수정 중 오류가 발생했습니다:', error);
+                    alert(`이미지 수정 중 오류가 발생했습니다: ${error.message}`);
+                }
+            };
+            
+            fileInput.click();
+        }
+        
+        // 이미지 모달 표시 (R2 기반)
+        function showImageModal(fileId, fileName) {
+            console.log(`이미지 보기: ${fileId}`);
+            
+            // R2 이미지 URL 가져오기
+            authenticatedFetch(`/contents/file/${fileId}/r2-image-url`, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`R2 이미지 URL을 가져오는데 실패했습니다: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 모달 요소 가져오기
+                const modal = document.getElementById('imageModal');
+                const modalImg = document.getElementById('imageModalImg');
+                const modalTitle = document.getElementById('imageModalTitle');
+                
+                // 모달 설정
+                modalTitle.textContent = fileName || '이미지 보기';
+                modalImg.src = data.signed_url;
+                
+                // 모달 표시
+                modal.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('이미지를 불러오는 중 오류가 발생했습니다:', error);
+                alert('이미지를 불러오는 중 오류가 발생했습니다.');
+            });
+        }
+        
+        // 페이지 상세 파일 다운로드
+        async function downloadPageDetail(detailId, detailName) {
+            console.log(`페이지 상세 다운로드: ${detailId}`);
+            
+            try {
+                // 인증된 요청으로 다운로드 URL 가져오기
+                const response = await authenticatedFetch(`/contents/page-detail/${detailId}/download`, {
+                    method: 'GET'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`파일 다운로드에 실패했습니다: ${response.status}`);
+                }
+                
+                // 리디렉션 응답을 처리하여 실제 파일 다운로드
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = detailName || `page_detail_${detailId}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error('페이지 상세 다운로드 중 오류가 발생했습니다:', error);
+                alert('페이지 상세 다운로드 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 페이지 상세 파일 업로드
+        function uploadPageDetailContent(detailId) {
+            console.log(`페이지 상세 파일 업로드: ${detailId}`);
+            
+            // 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1 && window.userRoleId !== 2) {
+                alert('파일 업로드 권한이 없습니다.');
+                return;
+            }
+            
+            // 파일 선택 다이얼로그 생성
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.pdf,.webm,.mp4,.avi,.mov,.wmv,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
+            fileInput.multiple = false;
+            
+            fileInput.onchange = function() {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    return;
+                }
+                
+                const contentFile = fileInput.files[0];
+                
+                // 파일 크기 검사 (100MB 제한)
+                if (contentFile.size > 100 * 1024 * 1024) {
+                    alert('파일 크기가 너무 큽니다. 100MB 이하의 파일을 선택해주세요.');
+                    return;
+                }
+                
+                // FormData 생성
+                const formData = new FormData();
+                formData.append('file', contentFile);
+                
+                // 인증된 요청으로 업로드 API 호출
+                authenticatedFetch(`/contents/page-detail/${detailId}/upload-content`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`파일 업로드에 실패했습니다: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert('파일이 성공적으로 업로드되었습니다.');
+                    
+                    // 파일 목록 새로고침
+                    if (currentSelectedChannel) {
+                        const filters = {
+                            all: document.getElementById('filter-all').checked,
+                            reviewing: document.getElementById('filter-reviewing').checked,
+                            rejected: document.getElementById('filter-rejected').checked,
+                            approved: document.getElementById('filter-approved').checked,
+                            updated: document.getElementById('filter-updated').checked
+                        };
+                        fetchChannelHierarchy(currentSelectedChannel, filters);
+                    }
+                })
+                .catch(error => {
+                    console.error('파일 업로드 중 오류가 발생했습니다:', error);
+                    alert('파일 업로드 중 오류가 발생했습니다.');
+                });
+            };
+            
+            fileInput.click();
+        }
+        
+        // 이미지 모달 닫기 이벤트 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('imageModal');
+            const closeBtn = document.querySelector('.image-modal-close');
+            
+            // 닫기 버튼 클릭
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+            
+            // 모달 배경 클릭
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // ESC 키 누르기
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+        
+        // 콘텐츠 추가 버튼 이벤트
+        document.getElementById('add-content').addEventListener('click', function() {
+            console.log('채널 추가');
+            
+            // 관리자 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1) {
+                alert('채널 추가 권한이 없습니다.');
+                return;
+            }
+            
+            // 채널 이름 입력 받기
+            const channelName = prompt("추가할 채널 이름을 입력하세요:");
+            if (!channelName) return;
+            
+            // 채널 추가 API 엔드포인트 호출
+            authenticatedFetch('/contents/channel', {
+                method: 'POST',
+                body: JSON.stringify({ name: channelName })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`채널 추가에 실패했습니다: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(() => {
+                // 추가 후 계층 구조 새로고침
+                initializeContentManager();
+            })
+            .catch(error => {
+                console.error('채널 추가 중 오류가 발생했습니다:', error);
+                alert('채널 추가 중 오류가 발생했습니다.');
+            });
+        });
+        
+        // 콘텐츠 삭제 버튼 이벤트
+        document.getElementById('remove-content').addEventListener('click', function() {
+            if (!currentSelectedChannel) {
+                alert('삭제할 채널을 선택해주세요.');
+                return;
+            }
+            
+            // 관리자 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1) {
+                alert('채널 삭제 권한이 없습니다.');
+                return;
+            }
+            
+            // 확인 창
+            if (!confirm("정말로 이 채널을 삭제하시겠습니까?")) {
+                return;
+            }
+            
+            // 채널 삭제 API 엔드포인트 호출
+            authenticatedFetch(`/contents/channel/${currentSelectedChannel}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`채널 삭제에 실패했습니다: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(() => {
+                // 삭제 후 계층 구조 새로고침
+                currentSelectedChannel = null;
+                initializeContentManager();
+            })
+            .catch(error => {
+                console.error('채널 삭제 중 오류가 발생했습니다:', error);
+                alert('채널 삭제 중 오류가 발생했습니다.');
+            });
+        });
+        
+        // 파일 추가 버튼 이벤트
+        document.getElementById('add-file').addEventListener('click', function() {
+            if (!currentSelectedChannel) {
+                alert('파일을 추가할 채널을 선택해주세요.');
+                return;
+            }
+            
+            // 적절한 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1 && window.userRoleId !== 2) {
+                alert('파일 추가 권한이 없습니다.');
+                return;
+            }
+            
+            // 파일 선택 다이얼로그 열기
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.multiple = false;
+            
+            fileInput.onchange = function() {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('channelId', currentSelectedChannel);
+                
+                // 파일 업로드 API 엔드포인트 호출
+                authenticatedFetch('/contents/file', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`파일 추가에 실패했습니다: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // 추가 후 계층 구조 새로고침
+                    if (currentSelectedChannel) {
+                        const filters = {
+                            all: document.getElementById('filter-all').checked,
+                            reviewing: document.getElementById('filter-reviewing').checked,
+                            rejected: document.getElementById('filter-rejected').checked,
+                            approved: document.getElementById('filter-approved').checked,
+                            updated: document.getElementById('filter-updated').checked
+                        };
+                        fetchChannelHierarchy(currentSelectedChannel, filters);
+                    }
+                })
+                .catch(error => {
+                    console.error('파일 추가 중 오류가 발생했습니다:', error);
+                    alert('파일 추가 중 오류가 발생했습니다.');
+                });
+            };
+            
+            fileInput.click();
+        });
+        
+        // 파일 삭제 버튼 이벤트
+        document.getElementById('remove-file').addEventListener('click', function() {
+            // 트리에서 선택된 파일 및 페이지 상세 찾기
+            const selectedFiles = document.querySelectorAll('.tree-file.selected');
+            const selectedDetails = document.querySelectorAll('.page-detail.selected');
+            
+            if (selectedFiles.length === 0 && selectedDetails.length === 0) {
+                alert('삭제할 파일 또는 페이지 상세를 선택해주세요.');
+                return;
+            }
+            
+            // 적절한 권한 검사
+            if (window.userRoleId !== 999 && window.userRoleId !== 1 && window.userRoleId !== 2) {
+                alert('파일 삭제 권한이 없습니다.');
+                return;
+            }
+            
+            // 확인 창
+            const totalSelected = selectedFiles.length + selectedDetails.length;
+            if (!confirm(`선택한 ${totalSelected}개 항목을 삭제하시겠습니까?`)) {
+                return;
+            }
+            
+            // 선택된 파일 ID 배열 가져오기 (페이지와 페이지 상세 모두 포함)
+            const fileIds = Array.from(selectedFiles).map(file => 
+                file.closest('.tree-node').dataset.id
+            );
+            const detailIds = Array.from(selectedDetails).map(detail => 
+                detail.closest('.tree-node').dataset.id
+            );
+            
+            // 모든 ID를 합침 (API는 페이지와 페이지 상세 모두 처리 가능)
+            const allIds = [...fileIds, ...detailIds];
+            
+            // 파일 삭제 API 엔드포인트 호출
+            authenticatedFetch('/contents/files', {
+                method: 'DELETE',
+                body: JSON.stringify({ fileIds: allIds })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`파일 삭제에 실패했습니다: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(() => {
+                // 삭제 후 계층 구조 새로고침
+                if (currentSelectedChannel) {
+                    const filters = {
+                        all: document.getElementById('filter-all').checked,
+                        reviewing: document.getElementById('filter-reviewing').checked,
+                        rejected: document.getElementById('filter-rejected').checked,
+                        approved: document.getElementById('filter-approved').checked,
+                        updated: document.getElementById('filter-updated').checked
+                    };
+                    fetchChannelHierarchy(currentSelectedChannel, filters);
+                }
+            })
+            .catch(error => {
+                console.error('파일 삭제 중 오류가 발생했습니다:', error);
+                alert('파일 삭제 중 오류가 발생했습니다.');
+            });
+        });
+        
+        // 파일 선택 기능 추가
+        document.addEventListener('click', function(e) {
+            const fileNode = e.target.closest('.tree-file');
+            const detailNode = e.target.closest('.page-detail');
+            
+            if (fileNode || detailNode) {
+                // 이미 선택된 파일/상세 선택 해제
+                document.querySelectorAll('.tree-file.selected, .page-detail.selected').forEach(node => {
+                    node.classList.remove('selected');
+                });
+                
+                // 현재 파일/상세 선택
+                if (fileNode) {
+                    fileNode.classList.add('selected');
+                } else if (detailNode) {
+                    detailNode.classList.add('selected');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

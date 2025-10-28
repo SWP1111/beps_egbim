@@ -1,0 +1,18 @@
+[Unit]
+Description=BEPs Gunicorn for Flask app 
+After=network.target                    
+
+[Service]
+User=user_ccp                                               
+Group=user_ccp                                               
+WorkingDirectory=/home/user_ccp/beps_server/BepsApi/Backend
+
+ExecStart=/home/user_ccp/beps_server/BepsApi/beps/bin/gunicorn -w 4 -b 0.0.0.0:3003 app:app
+
+Restart=always  
+RestartSec=3    
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+

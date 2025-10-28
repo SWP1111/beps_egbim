@@ -1,0 +1,56 @@
+tags:
+  - User
+summary: "CSRF 토큰 생성 API"
+operationId: csrf_token
+description: |
+  CSRF(Cross-Site Request Forgery) 공격을 방지하기 위해 CSRF 토큰을 생성합니다. 이 토큰은 클라이언트에서 서버로의 요청에 포함되어야 합니다.
+
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/csrf_token', {
+    method: 'GET',
+    credentials: 'include'
+  });
+  ```
+responses:
+  '200':
+    description: CSRF 토큰 생성 성공
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            csrf_token:
+              type: string
+              description: 생성된 CSRF 토큰
+  '401':
+    description: 실패
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지
+          examples:
+            noToken:
+              summary: 토큰 없음
+              value: 
+                error: "No access token found"
+            noCsrf:
+              summary: CSRF 토큰 없음
+              value: 
+                error: "No CSRF token found"
+  '500':
+    description: 서버 오류
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지
+              example: "Internal server error"

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>담당자 관리</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="asset/css/manager_admin.css">
+    <link rel="stylesheet" href="asset/css/admin_permission_modal.css">
+    <script src="asset/js/config.js"></script>
+    <script src="asset/js/verifyCookie.js"></script>
+    <script defer src="asset/js/manager_admin.js?v=202508271336"></script>
+    <script defer src="asset/js/admin_permission_modal.js?v=202509031537"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <h1>담당자 관리</h1>
+            <button id="admin-permission-btn" class="admin-permission-btn">
+                <span class="btn-icon">👤</span>
+                관리자 권한 설정
+            </button>
+        </div>
+        
+        <div class="permission-section">
+            <div class="permission-header">
+                <h2>담당자 추가</h2>
+            </div>
+            
+            <div class="input-table">
+                <table>
+                    <thead>
+                        <tr id="input-table-header">
+                            <th>채널</th>
+                            <th class="folder1-col">폴더</th>
+                            <th class="folder2-col">폴더2</th>
+                            <th class="folder3-col">폴더3</th>
+                            <th class="file-col">페이지</th>
+                            <th class="manager-col">담당자</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <select id="channel-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="folder1-col">
+                                <select id="folder1-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="folder2-col">
+                                <select id="folder2-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="folder3-col">
+                                <select id="folder3-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="file-col">
+                                <select id="file-select" class="combobox">
+                                    <option value="">선택</option>
+                                </select>
+                            </td>
+                            <td class="manager-col">
+                                <div class="manager-selection">
+                                    <div class="manager-row">
+                                        <input type="text" id="manager-input" placeholder="담당자 ID">
+                                        <button id="add-btn">추가</button>
+                                    </div>
+                                    <div class="manager-row user-comboboxes">
+                                        <select id="company-select" class="user-combobox">
+                                            <option value="">회사명</option>
+                                        </select>
+                                        <select id="department-select" class="user-combobox">
+                                            <option value="">부서</option>
+                                        </select>
+                                        <select id="position-select" class="user-combobox">
+                                            <option value="">직책</option>
+                                        </select>
+                                        <select id="name-select" class="user-combobox">
+                                            <option value="">이름</option>
+                                        </select>
+                                    </div>
+                                    <div class="manager-row">
+                                        <span id="validation-message" class="validation-message">담당자 ID를 입력하거나 소속 정보를 통해 선택하세요</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="error-message" class="error"></div>
+            
+            <div class="permissions-list">
+                <div class="list-header">
+                    <h2>담당자 목록</h2>
+                    <button id="refresh-btn" class="refresh-btn">새로고침</button>
+                </div>
+                <table id="permissions-table">
+                    <thead>
+                        <tr>
+                            <th class="permission-type-col">권한
+범위</th>
+                            <th>채널</th>
+                            <th class="folder1-col">폴더</th>
+                            <th class="folder2-col">폴더2</th>
+                            <th class="folder3-col">폴더3</th>
+                            <th class="file-col">페이지</th>
+                            <th class="company-col">회사명</th>
+                            <th class="department-col">부서</th>
+                            <th class="position-col">직책</th>
+                            <th class="name-col">이름</th>
+                            <th class="id-col">ID</th>
+                            <th class="action-col">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="permissions-list-body">
+                        <!-- Permission entries will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 관리자 권한 설정 모달 -->
+        <div id="admin-permission-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>관리자 권한 설정</h2>
+                    <button class="modal-close" id="modal-close-btn">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="search-section">
+                        <div class="search-input-group">
+                            <input type="text" id="employee-search-input" placeholder="직원 찾기 (이름, 사번)">
+                            <button id="employee-search-btn" class="search-btn">검색</button>
+                        </div>
+                        
+                        <div class="permission-select-group">
+                            <label for="admin-permission-select">부여할 권한:</label>
+                            <select id="admin-permission-select" class="permission-select">
+                                <option value="">권한 선택</option>
+                                <option value="integrated_admin">통합관리자</option>
+                                <option value="dev_admin">개발관리자</option>
+                                <!-- <option value="content_admin">Content_관리자</option>
+                                <option value="content_worker">Content_실무자</option> -->
+                                <option value="internal_user">일반사용자(사내)</option>
+                                <option value="external_user">일반사용자(사외)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="search-results-section" class="search-results-section" style="display: none;">
+                        <div class="results-header">
+                            <h3>검색 결과</h3>
+                            <span id="results-count" class="results-count"></span>
+                        </div>
+                        
+                        <div class="results-table-container">
+                            <table id="search-results-table" class="results-table">
+                                <thead>
+                                    <tr>
+                                        <th>선택</th>
+                                        <th>사번</th>
+                                        <th>회사</th>
+                                        <th>부서</th>
+                                        <th>이름</th>
+                                        <th>직급</th>
+                                        <th>메일</th>
+                                        <th>현재 권한</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="search-results-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="selected-employee-section" class="selected-employee-section" style="display: none;">
+                        <div class="selected-info">
+                            <h4>선택된 직원</h4>
+                            <div class="employee-info">
+                                <span id="selected-name"></span>
+                                <span id="selected-id"></span>
+                                <span id="selected-email"></span>
+                                <span id="selected-company"></span>
+                                <span id="selected-department"></span>
+                                <span id="selected-position"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 권한 부여 버튼을 여기로 이동 -->
+                        <div class="permission-assign-actions">
+                            <button id="assign-permission-btn" class="assign-btn" disabled>권한 부여</button>
+                        </div>
+                    </div>
+
+                    <div id="modal-error-message" class="modal-message error-message" style="display: none;"></div>
+                    <div id="modal-success-message" class="modal-message success-message" style="display: none;"></div>
+
+                    <!-- 구분선 -->
+                    <div class="section-divider"></div>
+
+                    <!-- 현재 사용자 권한 목록 섹션 -->
+                    <div class="admin-list-section">
+                        <div class="admin-list-header">
+                            <h3>사용자 권한 목록</h3>
+                            <div class="admin-list-controls">
+                                <select id="permission-filter" class="permission-filter">
+                                    <option value="">전체 권한</option>
+                                    <option value="integrated_admin">통합관리자</option>
+                                    <option value="dev_admin">개발관리자</option>
+                                    <!-- <option value="content_admin">Content_관리자</option>
+                                    <option value="content_worker">Content_실무자</option> -->
+                                    <option value="internal_user">일반사용자(사내)</option>
+                                    <option value="external_user">일반사용자(사외)</option>
+                                </select>
+                                <button id="refresh-admin-btn" class="refresh-admin-btn">새로고침</button>
+                            </div>
+                        </div>
+                        
+                        <div class="admin-table-container">
+                            <table id="admin-table" class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>사번</th>
+                                        <th>회사</th>
+                                        <th>부서</th>
+                                        <th>이름</th>
+                                        <th>직급</th>
+                                        <th>메일</th>
+                                        <th>권한</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-table-tbody">
+                                    <tr>
+                                        <td colspan="7" class="loading-message">관리자 목록을 불러오는 중...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button id="cancel-btn" class="cancel-btn">닫기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 담당자 수정 모달 -->
+        <div id="update-manager-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>담당자 수정</h2>
+                    <button class="modal-close" id="update-modal-close-btn">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="content-info">
+                        <h3>변경 대상 콘텐츠</h3>
+                        <div id="target-content-info" class="target-content-info"></div>
+                    </div>
+                    
+                    <div class="current-info">
+                        <h3>현재 담당자 정보</h3>
+                        <div id="current-manager-info" class="current-manager-info"></div>
+                    </div>
+                    
+                    <div class="new-manager-section">
+                        <h3>새 담당자 선택</h3>
+                        <div class="manager-selection">
+                            <div class="manager-row">
+                                <input type="text" id="update-manager-input" placeholder="담당자 ID">
+                                <button id="update-btn">변경</button>
+                            </div>
+                            <div class="manager-row user-comboboxes">
+                                <select id="update-company-select" class="user-combobox">
+                                    <option value="">회사명</option>
+                                </select>
+                                <select id="update-department-select" class="user-combobox">
+                                    <option value="">부서</option>
+                                </select>
+                                <select id="update-position-select" class="user-combobox">
+                                    <option value="">직책</option>
+                                </select>
+                                <select id="update-name-select" class="user-combobox">
+                                    <option value="">이름</option>
+                                </select>
+                            </div>
+                            <div class="manager-row">
+                                <span id="update-validation-message" class="validation-message">새 담당자 ID를 입력하거나 소속 정보를 통해 선택하세요</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="update-error-message" class="modal-message error-message" style="display: none;"></div>
+                    <div id="update-success-message" class="modal-message success-message" style="display: none;"></div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button id="update-cancel-btn" class="cancel-btn">취소</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-overlay" class="modal-overlay" style="display: none;"></div>
+    </div>
+</body>
+</html> 

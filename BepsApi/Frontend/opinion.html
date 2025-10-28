@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>의견서</title>
+    <link rel="stylesheet" href="asset/css/progress.css">
+    <link rel="stylesheet" href="asset/css/opinion.css">
+    <script src="asset/js/config.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script defer src="asset/js/opinion.js"></script>
+</head>
+<body>
+    <div id="app" class="progress-container">
+        <div class="filters-container">
+            <div class="period-filter">
+                <select v-model="selectedYear" @change="onYearChange">
+                    <option v-for="year in availableYears" :key="year" :value="year">{{ year }}년도</option>
+                </select>
+                <label class="checkbox-button" :class="{ active: isAnnualMode }">
+                    <input type="checkbox" v-model="isAnnualMode" @change="onAnnualChange">
+                    <span>연간</span>
+                </label>
+                <select v-model="selectedHalfYear" @change="onHalfYearChange">
+                    <option value="">반기 선택</option>
+                    <option value="1">상반기</option>
+                    <option value="2">하반기</option>
+                </select>
+                <select v-model="selectedQuarter" @change="onQuarterChange">
+                    <option value="">분기 선택</option>
+                    <option value="1">1분기</option>
+                    <option value="2">2분기</option>
+                    <option value="3">3분기</option>
+                    <option value="4">4분기</option>
+                </select>
+            </div>
+            
+           <!--  <div class="progress-filter">
+                <input type="text" id="searchContent" placeholder="내용 검색" v-model="searchContent">
+                <input type="date" id="searchStartDate" v-model="searchStartDate">
+                <span>~</span>
+                <input type="date" id="searchEndDate" v-model="searchEndDate">
+                <button @click="loadMemoData(1)">검색</button>
+                <button @click="sortByDate" :class="{ active: sortType === 'date' }">등록일순</button>
+                <button @click="sortByStatus" :class="{ active: sortType === 'status' }">처리상태순</button>
+            </div> -->
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>제목</th>
+                        <th>등록일</th>
+                        <th>타입</th>
+                        <th>회사</th>
+                        <th>부서</th>
+                        <th>작성자</th>
+                        <th>위치</th>
+                        <th>답변</th>
+                        <th>처리상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="memo in memoList" :key="memo.id" :data-memo-id="memo.id">
+                        <td>{{ memo.id }}</td>
+                        <td>{{ memo.title }}</td>
+                        <td>{{ formatDate(memo.created_at) }}</td>
+                        <td>{{ memo.type_text }}</td>
+                        <td>{{ memo.user ? memo.user.company : '' }}</td>
+                        <td>{{ memo.user ? memo.user.department : '' }}</td>
+                        <td>{{ memo.user ? memo.user.name + " " + memo.user.position : '' }}</td>
+                        <td>{{ memo.path }}</td>
+                        <td>
+                            <button class="reply-button" @click="replyToMemo(memo)">답변</button>
+                        </td>
+                        <td>
+                            <span class="status-badge" 
+                                  :class="{
+                                      'status-waiting': memo.status === 0,
+                                      'status-processing': memo.status === 1,
+                                      'status-completed': memo.status === 2
+                                  }">
+                                {{ memo.status_text }}
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination">
+            <button v-if="currentPage > 1" @click="loadMemoData(currentPage - 1)">◀ 이전</button>
+            <button v-for="page in visiblePages" :key="page" 
+                    :class="{ active: page === currentPage }"
+                    @click="page !== '...' ? loadMemoData(page) : null">
+                    {{ page }}
+                </button>
+                <button @click="loadMemoData(currentPage + 1)" :disabled="currentPage === totalPages">&gt;</button>
+        </div>
+    </div>
+</body>
+</html> 

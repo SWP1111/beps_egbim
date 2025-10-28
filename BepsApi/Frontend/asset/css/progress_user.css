@@ -1,0 +1,129 @@
+.rectangle {
+    width: 134px;
+    height: 108px;
+    border-radius: 30px;
+    background-color: #235E33;
+    display: flex;
+    justify-content: center;
+    padding: 5px;
+}
+
+.rectangle div{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+.frame {
+    background-color: #FFFFFF;
+    box-shadow: 2px 2px 30px rgba(0,0,0,0.2);
+    border-radius: 30px;
+    gap: 10px;
+    padding: 10px;
+}
+
+.update-td {
+    padding: 5px;
+    border-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.grid-guide-container {
+    display: grid;
+    width: 100%;
+    height: 80%;
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 10px;
+}
+
+.grid-guide-container__item {
+    /* border: 1px solid #E0E0E0; */
+    padding: 0;
+}
+
+.contents-title-flex{
+    flex: 0 0 150px;
+}
+
+.progress-bar {
+  position: relative;
+  width: 60%;
+  height: 30px;
+  background-color: #ddd;
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #28a745; /* 초록색 */
+  border-radius: 10px 0 0 10px;
+  width: 0%; /* 초기값 */
+  transition: width 0.3s ease; /* 부드러운 애니메이션 */
+}
+
+.progress-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 5px;
+  line-height: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.expander-container {
+  width: 100%;
+  overflow-y: auto;
+  background-color: #fafafa; /* 배경 */
+  border: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+.my-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;  /* 셀 테두리 병합 */
+  border-left: none !important;    /* ✅ 테이블 바깥 테두리 강제 제거 */
+  border-right: none !important;   /* ✅ 테이블 바깥 테두리 강제 제거 */
+  border-bottom: 1px solid #ddd; /* ✅ 테이블 바깥 아래쪽 테두리 */
+  box-shadow: none !important; /* 그림자 제거 (부트스트랩 등 프레임워크 대응) */
+  font-weight: 500;
+  font-family: 'Noto Sans KR', sans-serif; /* 폰트 설정 */
+}
+
+.my-table thead th {
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  padding: 8px;
+}
+
+.my-table tbody td {
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.my-table th:last-child,
+.my-table td:last-child {
+  border-right: none;
+}
+
+.my-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.page-cell {
+    font-weight: 700;
+}

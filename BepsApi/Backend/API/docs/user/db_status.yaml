@@ -1,0 +1,37 @@
+tags:
+  - User
+summary: "DB 연결 상태 확인 API"
+operationId: db_status
+description: |
+  데이터베이스 연결 상태를 확인합니다. 연결이 성공하면 'OK'를 반환합니다.
+
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/db_status', {
+      method: 'GET'
+  });
+  ```
+responses:
+  200:
+    description: 데이터베이스 연결 상태가 정상입니다.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "OK"
+  500:
+    description: 데이터베이스 연결 오류
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Database connection error"
+
+      

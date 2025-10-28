@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BEPs 관리</title>  
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>    
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="asset/css/main.css?v=202509021346">
+        <script src="https://descopecdn.com/npm/@descope/web-js-sdk@1.16.0/dist/index.umd.js"></script>
+        <script src="https://descopecdn.com/npm/@descope/web-component@3.21.0/dist/index.js"></script>
+        <script src="asset/js/config.js"></script>
+        <script src="asset/js/verifyCookie.js"></script>
+        <script defer src="asset/js/main.js?v=202508291425"></script>
+    </head>
+    <body>
+        <div class="header">
+
+            <div class="logo">
+                <div class="title-en">
+                    <span class="title">B.E.Ps</span>
+                    <span class="subtitle">*BIM Execution Plan samples</span>
+                </div>
+                <div class="title-ko">
+                    <span class="subtitle">사내</span>
+                    <span class="title">BIM 학습</span>
+                    <span class="subtitle">시스템</span>
+                </div>
+            </div>           
+
+            <div class="nav-buttons">
+                <button class="nav-button active" id="learning-button" data-content="progress_user.html">학습현황</button>
+                <button class="nav-button" id="learning-admin-button" data-content="progress_admin.html">관리자</button>
+                <button class="nav-button" id="contents-button" data-content="content_manager.html">콘텐츠</button>
+                <button class="nav-button" id="opinion-button" data-content="opinion.html">의견서</button>
+                <button class="nav-button" id="manager-admin-button">담당자 관리</button>
+            </div>
+
+            <div class="user-info">
+                <div class="user-profile">
+                    <img src="asset/images/user.png" class="profile-img" alt="user-profile">
+                    <span id="user_name" class="user-name">사용자</span>
+                </div>
+                <button id="logout-button" class="logout-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="logout_img" viewBox="0 -960 960 960" fill="white">
+                        <path d="M216-144q-29.7 0-50.85-21.15Q144-186.3 144-216v-528q0-29.7 21.15-50.85Q186.3-816 216-816h264v72H216v528h264v72H216Zm432-168-51-51 81-81H384v-72h294l-81-81 51-51 168 168-168 168Z"/>
+                    </svg>
+                </button>
+            </div>    
+        </div>
+
+        <div class="content" id="content-area">
+            <iframe id="content-frame"></iframe>
+            <!-- style="width: 100%; height: 100vh; border: none;" -->
+
+            <script type="text/javascript">
+                const iframe = document.getElementById('content-frame');
+
+                iframe.onload = () => {
+                try {
+                    const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    const scrollHeight = innerDoc.body.scrollHeight;
+                    iframe.style.height = (scrollHeight - 70) + 'px';
+                    console.log("iframe height: " + (scrollHeight - 70) + 'px');
+
+                } catch (e) {
+                    console.warn("다른 도메인이라면 자동 조정 불가");
+                }
+                };
+
+                 window.addEventListener("message", (event) => {
+                    if (event.data.type === "resize" && event.data.height) {
+                        const iframe = document.getElementById('content-frame');
+                        iframe.style.height = event.data.height + 'px';  
+                        iframe.style.width = event.data.width + 'px';                     
+                        if(document.body.offsetWidth < event.data.width) {
+                            document.body.style.width = event.data.width + 'px';
+                        }
+                    }
+                });
+            </script>
+        </div>
+    </body>
+</html>

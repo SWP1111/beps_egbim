@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Descope Login Example</title>
+
+  <style>
+    .login-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh; /* 전체 화면 기준 가운데 정렬 */
+    }
+
+    .login-container {
+      width: 400px;
+      margin: 0 auto;
+    }
+  </style>
+  
+  <!-- Descope SDK & Web Component -->
+  <script src="https://descopecdn.com/npm/@descope/web-js-sdk@1.16.0/dist/index.umd.js"></script>
+  <script src="https://descopecdn.com/npm/@descope/web-component@3.21.0/dist/index.js"></script>
+  <script src="/asset/js/config.js"></script>
+</head>
+
+<body>
+  <!-- 로그인 UI -->
+   <div class="login-wrapper">
+      <div class="login-container">
+        <descope-wc 
+          project-id="P2wON5fy1K6kyia269VpeIzYP8oP" 
+          flow-id="sign-up-with-password-for-beps"
+          base-url="https://api.descope.com">
+        </descope-wc>
+
+        <button id="logout-btn" style="display: none;">로그아웃</button>
+    </div>  
+   </div>
+   
+  
+  <pre id="output"></pre>
+
+  <script>
+    const wcElement = document.querySelector('descope-wc');
+    const output = document.getElementById('output');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    let refreshToken = null;
+
+    wcElement.addEventListener('success', () => {
+      const sdk = Descope({
+        projectId: 'P2yer3lyyRCBUdvkCLbtqAgvdNOx',
+        baseUrl: 'https://api.descope.com',
+        persistTokens: true,
+        autoRefresh: true,
+      });
+
+      const sessionToken = sdk.getSessionToken();
+      refreshToken = sdk.getRefreshToken();
+      output.textContent = "✅ 로그인 성공!\n\n세션 토큰:\n" + sessionToken +"\n리프레시 토큰:\n"+refreshToken;
+      
+      if(sessionToken == "" && refreshToken == "")
+      {
+        window.location.reload();
+        return;
+      }
+
+      logoutBtn.style.display = 'block';
+
+      fetch('http://172.16.10.191:20000/user/descope/get_user_info', {
+        method: 'GET',
+        headers: {
+          'X-Descope-Refresh-Token': refreshToken
+        }
+      }).then(res => res.json())
+      .then(async data => {
+        output.textContent += "\n\n사용자 정보:\n" + JSON.stringify(data, null, 2);
+        const authUserInfo = await AuthUserInfo(data.customAttributes.familyUniqueKey, refreshToken);
+        if(authUserInfo.success)
+        {
+          output.textContent += "\n\n인증된 사용자 정보:\n" + JSON.stringify(authUserInfo.data, null, 2);
+
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("username", data.name);
+          localStorage.setItem("loggedInUser", JSON.stringify(authUserInfo.data));
+          
+          window.location.href = "/main.html";
+        }
+        else
+        {
+          output.textContent += "\n\n인증된 사용자 정보 없음";
+        }
+      });
+
+      //fetch('https://api.descope.com/v1/auth/me', {
+      //  headers: {Authorization: `Bearer P2wON5fy1K6kyia269VpeIzYP8oP:${refreshToken}`}
+      //}).then(res => res.json())
+      //.then(userInfo => output.textContent += "\n\n사용자 정보:\n" + JSON.stringify(userInfo, null, 2));
+    });
+
+    wcElement.addEventListener('error', (err) => {
+      output.textContent = "❌ 로그인 실패:\n" + JSON.stringify(err);
+    });
+
+    wcElement.addEventListener('flowUpdate', (e) => {
+      console.log(e.detail);
+    });
+
+    logoutBtn.addEventListener('click', async() => {
+      try{
+        
+        await checkValidateToken(refreshToken); // 로그아웃 전 토큰 검증
+
+        const logoutResponse = await fetch('https://api.descope.com/v1/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer P2wON5fy1K6kyia269VpeIzYP8oP:${refreshToken}`
+          }
+        });
+
+        if(logoutResponse.ok) {
+          output.textContent = "✅ 로그아웃 성공!";
+          logoutBtn.style.display = 'none';
+
+          await checkValidateToken(refreshToken); // 로그아웃 후 토큰 검증
+        } 
+        else 
+        {
+          throw new Error("로그아웃 실패");
+        }
+      }
+      catch (error) {
+        output.textContent = "❌ 로그아웃 실패:\n" + error;
+      }
+    })
+
+    async function checkValidateToken(token) {
+      try{
+        const response = await fetch('https://api.descope.com/v1/auth/validate', {
+          method: 'POST',
+          headers: { Authorization: `Bearer P2wON5fy1K6kyia269VpeIzYP8oP:${token}` }
+        });
+
+        if(!response.ok) {
+          throw new Error("토큰 검증 실패");
+        }
+
+        const data = await response.json();
+        output.textContent = "✅ 토큰 검증 성공:\n" + data;
+      }
+      catch (error) {
+        output.textContent = "❌ 토큰 검증 실패:\n" + error;
+      }
+    }
+
+    async function AuthUserInfo(id, refreshToken) {
+      const url = `${window.baseUrl}user/user`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: id,
+          descope_refresh_jwt: refreshToken,
+          save_refresh_jwt: true
+        })
+      });
+
+      const responseJson = await response.json();
+      if(response.ok)
+      {
+        return {success: true, data: responseJson}
+      }
+      else
+      {
+        return {success: false, message: "사용자 없음"}
+      }
+    }
+  </script>
+</body>
+</html>

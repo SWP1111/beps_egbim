@@ -1,0 +1,94 @@
+.active-user {   
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 258px; /* 고정 너비 */
+    margin-left: 20px; /* filter와 일치하게 */
+    margin-top: 10px;
+    background-color: #fff;
+}
+
+.listbox-container {
+    display: flex;
+    position: relative;
+    background-color: #fff94e;
+}
+
+.custom-listbox {
+    position: relative;
+    display: flex;
+    margin-left: 0px;
+    margin-top: 0px;
+    width: 227px;
+    height: 295px;
+    overflow-y: auto;
+    background-color: #fff;
+    flex-direction: column;
+    border: 1px solid black;
+
+    overflow-y: scroll;
+    scrollbar-width: none;
+
+    text-align: center;
+    font-weight: 700;
+    font-family: NotosansKR;
+    font-size: 15px;
+
+    user-select: none;
+}
+
+.listbox-item {
+    position: relative;
+    margin-top: 5px;
+}
+.listbox_item .user_text{
+    user-select: none;
+    cursor: default;
+}
+.yellow {
+    width: 16px;
+    height: 16px;
+    background-color: #fff94e;
+    border: 1px solid #d9d9d9;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: absolute;
+    margin-top: 1px;
+    right: 10px;                  /* container 오른쪽에서 10px */
+    top: 50%;
+    transform: translateY(-50%);
+}
+.yellow-RedBorder {
+    width: 16px;
+    height: 16px;
+    background-color: #fff94e;
+    border: 1px solid red;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: absolute;
+    right: 10px;                  /* container 오른쪽에서 10px */
+    top: 50%;
+    transform: translateY(-50%);
+}
+.legend {
+    display: flex;
+    justify-content: flex-end;
+    position: relative;
+    width: 88%;
+    margin-top: 5px;
+    align-content:flex-end;
+    font-family: NotosansKR;
+    font-weight: 700;
+    font-size: 12px;
+}
+.legend .status-red {
+    width: 15px;
+    height: 15px;
+    position: relative;
+    margin-top: 1px;
+    margin-right: 5px;
+    border: 1px solid red;
+    background-color: #fff;
+    border-radius: 50%;
+    flex-shrink: 0;
+}

@@ -1,0 +1,33 @@
+tags:
+  - Learning
+summary: "학습 시작 API"
+operationId: start
+description: |
+  사용자가 학습을 시작합니다.
+  현재 시간(UTC)을 응답으로 반환합니다.
+
+  **요청 예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/learning/start', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_ACCESS_TOKEN', # 토큰 기반 인증 사용하는 경우 필요(쿠키 기반이면 필요 없음)
+    }
+  });
+  ```
+
+  **응답 예시:**
+
+  ```json
+  {
+    "status": "OK",
+    "start_time": "2023-10-01T12:00:00+00:00"
+  }
+  ```
+responses:
+  '200':
+    description: 학습 시작 성공
+  '500':
+    description: 서버 오류

@@ -1,0 +1,93 @@
+
+### users 테이블 id 중복처리(대소문자)##############
+# ID 중복 체크
+SELECT LOWER(id), COUNT(*) FROM users GROUP BY LOWER(id) HAVING COUNT(*) > 1;
+
+# 같은 ID(Lower(id)) 중에서 최근 timestamp 제외 모든 중복 id 데이터 제거
+WITH ranked_users AS (
+  SELECT id, ROW_NUMBER() OVER (
+    PARTITION BY LOWER(id)
+    ORDER BY time_stamp DESC
+  ) AS rn
+  FROM users
+)
+DELETE FROM users
+WHERE id IN (
+  SELECT id FROM ranked_users WHERE rn > 1
+);
+
+# 남은 ID는 모두 소문자로 통일
+UPDATE users
+SET id = LOWER(id);
+
+# 중복 방지용 인덱스 추가 (선택)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_lower_id ON users (LOWER(id));
+##############################################
+
+# 파티션 수동 생성(login_summary_day)
+# login_summary_day, learning_summary_day는 분기(yyyy_{01,04,07,10}), login_history_archive는 반기(yyyy_{01,07}) 주기 파티셔닝
+CREATE TABLE login_summary_day_2025_01
+PARTITION OF login_summary_day
+FOR VALUES FROM ('2025-01-01') TO ('2025-04-01');
+
+# 함수 등록
+sudo -u postgres psql -d beps -f Backend/DB/login_summary_daily.sql
+sudo -u postgres psql -d beps -f Backend/DB/login_summary_halfyearly.sql
+sudo -u postgres psql -d beps -f Backend/DB/login_summary_yearly.sql
+sudo -u postgres psql -d beps -f Backend/DB/learning_summary.sql
+
+# 학습 현황 일일 집계 (KST 자정에 맞춘 시간을 UTC 변환해서 전달) - 수동 사용 시
+SELECT aggregate_learning_summary_daily((TIMESTAMP '2025-03-13' AT TIME ZONE 'Asia/Seoul') AT TIME ZONE 'UTC');
+
+# 로그인 현황 일일 집계
+SELECT aggregate_daily_stats((TIMESTAMP '2025-04-02' AT TIME ZONE 'Asia/Seoul' - INTERVAL '1 day') AT TIME ZONE 'UTC');
+# 로그인 현황 분기 집계
+aggregate_quarterly_stats(2025, 01) # year, 분기(01,02,03,04)
+# 로그인 현황 반기 집계
+aggregate_halfyearly_stats(2025, 01) # year, 반기(01,02)
+# 로그인 현황 연간 집계
+aggregate_yearly_stats(2025)  # year
+
+# [deprecated] folders 테이블에 최상위 카테고리 폴더 id 업데이트 - folders 테이블 제거거
+# UPDATE folders SET top_category_folder_id = get_top_category_folder(folder_id);
+
+# 실행 권한(cronjob에서 실행되게 하려면 실행권한을 부여해야 함함)
+chmod +x /home/user_ccp/service/BepsApi/Backend/DB/summary_executor.bash
+
+# 테이블 비우기
+DELETE FROM table_name;   # 모든 row 제거
+TRUNCATE table_name;      # 모든 row 제거(더 빠름)
+TRUNCATE table_name RESTART IDENTITY; #모든 row 제거, id 시퀀스 초기화(1)
+TRUNCATE table_name RESTART IDENTITY CASCADE; # foreign key 제약 존재 시, CASCADE 옵션 추가하면 연관 테이블도 비움움
+
+
+# 인덱스 사용 확인
+SELECT
+  relname AS table_name,
+  indexrelname AS index_name,
+  idx_scan AS index_scan_count,
+  idx_tup_read AS tuples_read,
+  idx_tup_fetch AS tuples_fetched
+FROM
+  pg_stat_user_indexes
+WHERE
+  relname = 'content_viewing_history'   #테이블 이름름
+ORDER BY
+  idx_scan DESC;
+
+#################cronjob###########################
+
+0 0 1 * * /bin/bash /home/user_ccp/service/BepsApi/Backend/DB/archive_executor.bash >> /home/user_ccp/service/BepsApi/Backend/DB/log/archive_automation.log 2>&1
+
+# 매일집계(1시)
+0 1 * * * /bin/bash /home/user_ccp/service/BepsApi/Backend/DB/summary_executor.bash >> /home/user_ccp/service/BepsApi/Backend/DB/log/archive_automation.log 2>&1
+# 분기 집계(3시)
+0 3 3 1,4,7,10 * /bin/bash /home/user_ccp/service/BepsApi/Backend/DB/summary_executor.bash >> /home/user_ccp/service/BepsApi/Backend/DB/log/archive_automation.log 2>&1
+# 반기 집계(3시)
+0 3 4 1,7 * /bin/bash /home/user_ccp/service/BepsApi/Backend/DB/summary_executor.bash >> /home/user_ccp/service/BepsApi/Backend/DB/log/archive_automation.log 2>&1
+# 연간 집계(3시)
+0 3 5 1 * /bin/bash /home/user_ccp/service/BepsApi/Backend/DB/summary_executor.bash >> /home/user_ccp/service/BepsApi/Backend/DB/log/archive_automation.log 2>&1
+# 분기  파티션(3시)
+0 3 6 1,4,7,10 * /bin/bash /home/user_ccp/service/BepsApi/Backend/DB/summary_executor.bash >> /home/user_ccp/service/BepsApi/Backend/DB/log/archive_automation.log 2>&1
+
+#####################################################

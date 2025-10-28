@@ -1,0 +1,93 @@
+tags:
+  - User
+summary: "로그인(사용자 정보 조회 및 토큰 발급) API"
+operationId: user
+description: |
+  BEPs 로그인 API입니다.
+  사용자 정보를 조회하고, 토큰을 생성합니다.
+  
+  BEPs Client 접근인지 웹에서 접근하는지 확인 후, 토큰과 쿠키를 발급합니다.
+  BEPs Client 접근 시, 토큰에는 login_id를 포함하여 발급합니다.
+  
+  로그인 이력을 저장합니다.
+  
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id: 'user_id',
+      ip_address: 'user_ip_address',
+      descope_refresh_jwt: 'refreshJWT'
+    })
+  });
+  ```
+
+  **응답 예시:**
+
+  ```json
+  {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5...",
+    "user": {
+      "access_group_id": null,
+      "company": "삼안",
+      "department": "기술개발센터 그래픽스개발Division CCP&BEPs팀",
+      "email": "b23009@hanmaceng.co.kr",
+      "id": "b23009",
+      "is_deleted": false,
+      "login_time": "Thu, 26 Jun 2025 04:57:35 GMT",
+      "logout_time": "Thu, 26 Jun 2025 04:57:45 GMT",
+      "name": "정나래",
+      "phone": "+82-1057367469",
+      "position": "선임",
+      "role_id": 1,
+      "time_stamp": 1750913865
+    }
+  }
+  ```
+
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 사용자 ID
+          example: b23009
+        ip_address:
+          type: string
+          description: 사용자 IP
+          example: 12.34.56.78
+        descope_refresh_jwt:
+          type: string
+          description: Refresh JWT
+          example: "eyJhbGciOiJSUzI1NiIsImtpZCI6IlNLMndPTjYwSTNqTFQ2R0hMT1VjUk40OXBDMnpXIiwidHlwIjoiSldUIn0.eyJhbXIiOlsicHdkIl0sImRybiI6IkRTUiIsImR2IjoxLCJleHAiOjE3NTM0MDg3MTIsImlhdCI6MTc1MDk4OTUxMiwiaXNzIjoiUDJ3T041ZnkxSzZreWlhMjY5VnBlSXpZUDhvUCIsInN1YiI6IlUyeTJGb2x0TUNranBaS1ZwVlRxYmI0NEZrbGMifQ.aPRVk93bBe4a0RRuD39G-4VWBm_ktnVdXfMrya5nSsCrwZQA9UyvQg_I3Vq3RpBfzbg_tbmX7STt-PfXscUSeppT8yVOcFggBJvRSkGuFajBQtnMMXZJ_2YJyRdDSLp-cj93dPl0wFJtHLe4_HefYSr_TN43jTk1siq7Q2aqkdhusNv4z72rSXaWrCKIw5PE8FgruAiim3nsaoo8luDOmmFT7iRJKQhx1vsmeOjzb6Gkbi7NFWm5m_4T55C4GeKvhkZUKCa3X1eal5BrZvXkGMS3TIoqcrXPzYTuJhWpUCGNkfceBq6Vv3NiZKen3drk96Z_Eyc6UznAO5t1sV6Qkg"
+        save_refresh_jwt:
+          type: boolean
+          description: 저장 여부
+          example: false
+      required:
+        - id
+        
+responses:
+  '200':
+    description: |
+      로그인 성공!!
+      사용자 정보와 토큰을 반환합니다.
+  '500':
+    description: 서버 오류
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              description: 오류 메시지

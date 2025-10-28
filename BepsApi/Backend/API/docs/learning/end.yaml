@@ -1,0 +1,77 @@
+tags:
+  - Learning
+summary: "학습 종료 API"
+operationId: end
+description: |
+  사용자가 학습을 종료합니다.
+  학습 시간을 체크하여 학습 시간이 30초 이하면 기록하지 않습니다.
+
+  포인트를 계산하여 기록합니다. 5분이상이면 1점 누적하여 5점 만점으로 기록합니다. -> 보류된 기능
+  페이지에 대한 학습 시간을 사용자 별로 누적하여 기록합니다. 10분이상이면 학습 완료로 간주합니다.
+
+  **요청 예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/learning/end', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',  
+      'Authorization': 'Bearer YOUR_ACCESS_TOKEN', # 토큰 기반 인증 사용하는 경우 필요(쿠키 기반이면 필요 없음)
+    },
+    body: JSON.stringify({
+      user_id: 'b23009',
+      file_id: 1,
+      file_type: 'page',
+      ip_address: '12.34.56.78',
+      start_time: '22023-10-01T12:00:00+00:00'
+    })
+  });
+  ```
+
+  **응답 예시:**
+
+  ```json
+  {
+    "status": "OK",
+    "id": 12345,
+    "pointe_added": false,
+    "point_reason": "Duration too short"
+  }
+  ```
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: 사용자 ID
+          example: "b23009"
+        file_id:
+          type: integer
+          description: 페이지 또는 상세보기 파일 ID
+          example: 1
+        file_type:
+          type: boolean
+          description: 파일 유형 (page 또는 detail)
+          example: "page"
+        ip_address:
+          type: string
+          description: 사용자 IP 주소
+          example: "12.34.56.78"
+        start_time:
+          type: string
+          description: /start API에서 반환된 학습 시작 시간
+          example: "2023-10-01T12:00:00+00:00"
+  
+responses:
+  '201':
+    description: 학습 종료 성공    
+  '400':
+    description: 잘못된 요청 (필수 파라미터 누락 등)
+  '500':
+    description: 서버 오류
+
+

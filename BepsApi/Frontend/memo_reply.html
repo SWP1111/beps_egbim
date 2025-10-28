@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <!-- 
+    Last updated: 250508-10:00
+    Changes: Added ping-pong mechanism to verify BepsApp.exe is running
+    This improved version uses a promise-based approach with timeout to ensure reliable app detection
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>의견서 답변</title>
+    <script src="asset/js/config.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f8f8f8;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+    padding: 10px;
+    text-align: left;
+    word-wrap: break-word;
+}
+
+td:nth-child(odd) {
+    background-color: #f9f9f9;
+    font-weight: bold;
+    width: 80px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+td:nth-child(even) {
+    min-width: 100px;
+}
+        .content-cell {
+            height: 400px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            text-align: left;
+            vertical-align: top;  /* Instead of align-content: top */
+            padding-top: 10px;
+        }
+        .comment-section {
+            margin-top: 30px;
+        }
+        .comment-section h3 {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .buttons {
+            text-align: right;
+            margin-top: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .cancel-button {
+            background-color: #f44336;
+        }
+        .cancel-button:hover {
+            background-color: #d32f2f;
+        }
+        .reply-list {
+            margin-bottom: 20px;
+        }
+        .reply-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .reply-user {
+            font-weight: bold;
+        }
+        .reply-date {
+            color: #666;
+            font-size: 0.8em;
+        }
+        .reply-content {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+        }
+        .reply-actions {
+            text-align: right;
+        }
+        .edit-button, .delete-button {
+            background-color: #2196F3;
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+        .delete-button {
+            background-color: #f44336;
+        }
+        .hidden {
+            display: none;
+        }
+        .user-info {
+            white-space: pre-line;
+        }
+        .user-info-cell {
+            width: 100px !important;
+            font-size: 0.9em;
+            background-color: #f9f9f9;
+            font-weight: bold;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .file-attachment-section {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .file-attachment-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+        .file-select-button {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #000000;
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .file-select-button:hover {
+            background-color: #1976D2;
+        }
+        .selected-file-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .attachment-list {
+            margin-top: 10px;
+        }
+        .attachment-item {
+            display: inline-block;
+            margin: 2px 5px;
+            padding: 4px 8px;
+            background-color: #e3f2fd;
+            border: 1px solid #2196F3;
+            border-radius: 12px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .attachment-item:hover {
+            background-color: #bbdefb;
+        }
+        .attachment-item .filename {
+            color: #1976D2;
+            text-decoration: none;
+        }
+        .attachment-item .delete-attachment {
+            margin-left: 5px;
+            color: #f44336;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .attachment-item .delete-attachment:hover {
+            color: #d32f2f;
+        }
+        .uploading-indicator {
+            color: #ff9800;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <table>
+            <tr>
+                <td>등록일</td>
+                <td colspan="5" style="white-space: pre-line; position: relative;">
+                    {{ formatDate(memo.modified_at) }}
+                    <!-- Status control section -->
+                    <div style="float: right; margin-left: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span class="status-icon" :title="getStatusText(memo.status)" style="font-size: 1.2em;">
+                            {{ getStatusIcon(memo.status) }}
+                        </span>
+                        <button v-if="memo.status == 1 && (isAuthor || isManager || isSuperAdmin)" 
+                                @click="markAsComplete" 
+                                style="background-color: #4CAF50; color: white; padding: 4px 8px; font-size: 0.8em; border: none; border-radius: 3px; cursor: pointer;">
+                            처리완료
+                        </button>
+                        <button v-if="memo.status === 2 && (isAuthor || isManager || isSuperAdmin)" 
+                                @click="cancelComplete" 
+                                style="background-color: #f44336; color: white; padding: 4px 8px; font-size: 0.8em; border: none; border-radius: 3px; cursor: pointer;">
+                            취소
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>작성자</td>
+                <td>{{ memo.user ? memo.user.name + ' ' + memo.user.position + ' (' + memo.user_id + ')' : '' }}</td>
+                <td>회사명</td>
+                <td>{{ memo.user ? memo.user.company : '' }}</td>
+                <td>부서명</td>
+                <td>{{ memo.user ? memo.user.department : '' }}</td>
+            </tr>
+            <tr>
+                <td>제목</td>
+                <td colspan="5">
+                    <span v-if="!editMode">{{ memo.title }}</span>
+                    <input v-if="editMode" type="text" v-model="editTitle" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                </td>
+            </tr>
+            <tr>
+                <td>내용</td>
+                <td colspan="5" class="content-cell">
+                    <span v-if="!editMode" style="white-space: pre-wrap;">{{ memo.content }}</span>
+                    <textarea v-if="editMode" v-model="editContent" style="width: 100%; height: 350px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; box-sizing: border-box; white-space: pre-wrap;"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>경로</td>
+                <td colspan="5">
+                    {{ memo.path }}
+                    <button v-if="memo.path || memo.file_id || memo.folder_id" @click="handleGoToClick" style="cursor: pointer; background-color: #2196F3; color: white; margin-left: 10px;">[바로가기]</button>
+                </td>
+            </tr>
+        </table>
+        
+        <!-- Edit Button Section -->
+        <div class="edit-section" v-if="isAuthor" style="text-align: right; margin: 20px 0;">
+            <button v-if="!editMode" @click="startMemoEditing" style="background-color: #2196F3; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                수정
+            </button>
+            <div v-if="editMode">
+                <button @click="cancelMemoEditing" class="cancel-button" style="margin-right: 10px;">취소</button>
+                <button @click="saveMemoEditing" style="background-color: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">저장</button>
+            </div>
+        </div>
+        
+        <div class="comment-section">
+            <h3>COMMENT</h3>
+            
+            <!-- Existing Replies -->
+            <div class="reply-list" v-if="replies.length > 0">
+                <div class="reply-item" v-for="reply in replies" :key="reply.id">
+                    <div class="reply-header">
+                        <div class="reply-user">
+                            {{ reply.user ? `${reply.user.name} ${reply.user.position} (${reply.user.id})` : reply.user_id }}
+                        </div>
+                        <div class="reply-date">
+                            {{ formatDate(reply.modified_at) }}
+                        </div>
+                    </div>
+                    <div class="reply-content" v-if="!reply.editing">
+                        {{ reply.content }}
+                    </div>
+                    <textarea v-if="reply.editing" v-model="reply.editContent" class="edit-textarea"></textarea>
+                    <!-- Attachment display -->
+                    <div class="attachment-list" v-if="reply.attachments && reply.attachments.length > 0">
+                        <div class="attachment-item" v-for="attachment in reply.attachments" :key="attachment.id">
+                            <span class="filename" @click="viewAttachment(attachment)">{{ attachment.filename }}</span>
+                            <span class="delete-attachment" v-if="currentUser.id === reply.user_id && !reply.editing" 
+                                  @click="deleteAttachment(attachment, reply)" title="첨부파일 삭제">×</span>
+                        </div>
+                    </div>
+                    <div class="reply-actions" v-if="currentUser.id === reply.user_id && !reply.editing">
+                        <button class="edit-button" @click="startEditing(reply)">수정</button>
+                        <button class="delete-button" @click="deleteReply(reply)">삭제</button>
+                    </div>
+                    <div class="reply-actions" v-if="reply.editing">
+                        <button class="cancel-button" @click="cancelEditing(reply)">취소</button>
+                        <button class="edit-button" @click="saveEditing(reply)">저장</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- New Reply Form -->
+            <table>
+                <tr>
+                    <td class="user-info-cell" v-html="currentUser.name + ' ' + currentUser.position + '<br>(' + currentUser.id + ')'"></td>
+                    <td>
+                        <textarea v-model="replyComment" placeholder="답변을 입력하세요"></textarea>
+                        <!-- File attachment section -->
+                        <div class="file-attachment-section">
+                            <svg class="file-attachment-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                <path d="M12,11L16,15H13.5V19H10.5V15H8L12,11Z"/>
+                            </svg>
+                            <button class="file-select-button" @click="selectFile" type="button">
+                                파일 선택
+                            </button>
+                            <span class="selected-file-info" v-if="selectedFile">
+                                {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
+                            </span>
+                            <span class="uploading-indicator" v-if="uploadingFile">
+                                파일 업로드 중...
+                            </span>
+                        </div>
+                        <input type="file" ref="fileInput" @change="onFileSelected" style="display: none;" 
+                               accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.txt">
+                    </td>
+                </tr>
+            </table>
+            
+            <div class="buttons">
+                <button class="cancel-button" @click="cancelReply">취소</button>
+                <button @click="saveReply">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, onUnmounted } = Vue;
+        const url = typeof baseUrl != "undefined" ? baseUrl : "http://172.16.8.208:20000/";
+
+        createApp({
+            setup() {
+                const memo = ref({});
+                const replyComment = ref('');
+                const currentUser = ref({});
+                const replies = ref([]);
+                const selectedFile = ref(null);
+                const uploadingFile = ref(false);
+                const editMode = ref(false);
+                const editTitle = ref('');
+                const editContent = ref('');
+                const isAuthor = ref(false);
+                const isManager = ref(false);
+                const isSuperAdmin = ref(false);
+                const previousStatus = ref(0);
+                
+                // Define status mapping at a higher scope to ensure it's always available
+                const statusMapping = {
+                    0: "답변대기",
+                    1: "답변완료",
+                    2: "처리완료"
+                };
+                
+                const getStatusIcon = (status) => {
+                    switch(status) {
+                        case 0: return "⏳"; // 답변대기
+                        case 1: return "✅"; // 답변완료
+                        case 2: return "🔒"; // 처리완료
+                        default: return "❓";
+                    }
+                };
+                
+                const getStatusText = (status) => {
+                    return statusMapping[status] || "알 수 없음";
+                };
+
+                const loadData = async () => {
+                    // Load memo data from localStorage
+                    try {
+                        const memoData = JSON.parse(localStorage.getItem('replyMemo'));
+                        if (memoData) {
+                            memo.value = memoData;
+                            
+                            // Fetch path if not provided but file_id or folder_id exists
+                            if (!memo.value.path && (memo.value.file_id || memo.value.folder_id)) {
+                                let pathParams = [];
+                                if (memo.value.file_id) pathParams.push(`file_id=${memo.value.file_id}`);
+                                if (memo.value.folder_id) pathParams.push(`folder_id=${memo.value.folder_id}`);
+                                
+                                if (pathParams.length > 0) {
+                                    try {
+                                        const response = await fetch(`${url}file_bp/get_file_path?${pathParams.join('&')}`, {
+                                            method: "GET",
+                                            credentials: "include",
+                                            headers: {
+                                                "Accept": "application/json"
+                                            }
+                                        });
+                                        
+                                        if (response.ok) {
+                                            const data = await response.json();
+                                            memo.value.path = data.file_path;
+                                        }
+                                    } catch (error) {
+                                        console.error("Error fetching file path:", error);
+                                    }
+                                }
+                            }
+                            
+                            // Load replies for this memo
+                            fetchReplies(memoData.id);
+                        } else {
+                            alert('메모 데이터를 불러올 수 없습니다.');
+                            window.close();
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error loading memo data:', error);
+                        alert('메모 데이터를 불러올 수 없습니다.');
+                        window.close();
+                        return;
+                    }
+
+                    // Load current user data
+                    try {
+                        console.log('Attempting to load user data from localStorage...');
+                        const loggedInUserString = sessionStorage.getItem("loggedInUser");
+                        console.log('Raw loggedInUser string from localStorage:', loggedInUserString);
+                        const loggedInUser = JSON.parse(loggedInUserString);
+                        console.log('Parsed loggedInUser object:', loggedInUser);
+
+                        if (loggedInUser && loggedInUser.user) {
+                            currentUser.value = {
+                                id: loggedInUser.user.id,
+                                name: loggedInUser.user.name || '',
+                                position: loggedInUser.user.position || '',
+                                company: loggedInUser.user.company || '',
+                                department: loggedInUser.user.department || '',
+                                role_id: loggedInUser.user.role_id
+                            };
+                            
+                            console.log('Current user loaded:', currentUser.value);
+                            console.log('Memo data loaded:', memo.value);
+                            
+                            // Robustly compare user IDs by converting both to strings
+                            const isCurrentUserAuthor = memo.value && String(memo.value.user_id) === String(currentUser.value.id);
+                            isAuthor.value = isCurrentUserAuthor;
+                            
+                            // Check if user is SuperAdmin (role_id == 1)
+                            isSuperAdmin.value = currentUser.value.role_id === 1 || currentUser.value.role_id === 999 || currentUser.value.role_id === 2;
+                            
+                            console.log(`[Author Check] Memo author: "${memo.value?.user_id}" (type: ${typeof memo.value?.user_id}), Current user: "${currentUser.value.id}" (type: ${typeof currentUser.value.id}). Are they the same author? ${isCurrentUserAuthor}`);
+                            console.log(`[SuperAdmin Check] User role_id: ${currentUser.value.role_id}, Is SuperAdmin: ${isSuperAdmin.value}`);
+                            console.log('[Status Check] Current memo status is:', memo.value?.status);
+                            
+                            // Check if user is manager for this memo
+                            await checkIfUserIsManager();
+                        } else {
+                            console.error("Failed to process user data: `loggedInUser` or `loggedInUser.user` is missing.", loggedInUser);
+                            alert('로그인 정보를 불러올 수 없습니다.');
+                            window.close();
+                        }
+                    } catch (error) {
+                        console.error('Error parsing or processing user data from localStorage:', error);
+                        alert('로그인 정보를 불러올 수 없습니다.');
+                        window.close();
+                    }
+                };
+
+                const fetchReplies = (memoId) => {
+                    // Fetch replies for this memo
+                    fetch(`${url}memo/reply/memo/${memoId}`, {
+                        method: "GET",
+                        credentials: "include",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch replies');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Add editing property to each reply
+                        replies.value = data.map(reply => ({
+                            ...reply,
+                            editing: false,
+                            editContent: reply.content
+                        }));
+                    })
+                    .catch(error => {
+                        console.error("Error fetching replies:", error);
+                    });
+                };
+
+                const checkIfUserIsManager = async () => {
+                    try {
+                        if (!memo.value.file_id) {
+                            isManager.value = false;
+                            return;
+                        }
+                        
+                        const response = await fetch(`${url}memo/${memo.value.id}/is_manager`, {
+                            method: "GET",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            isManager.value = data.is_manager;
+                            console.log(`[Manager Check] User is manager: ${data.is_manager}`);
+                        } else {
+                            isManager.value = false;
+                            console.log('[Manager Check] Failed to check manager status');
+                        }
+                    } catch (error) {
+                        console.error('Error checking manager status:', error);
+                        isManager.value = false;
+                    }
+                };
+                
+                const markAsComplete = async () => {
+                    try {
+                        previousStatus.value = memo.value.status;
+                        
+                        const response = await fetch(`${url}memo/${memo.value.id}/mark_complete`, {
+                            method: "POST",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json",
+                                "Content-Type": "application/json"
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to mark as complete');
+                        }
+                        
+                        const data = await response.json();
+                        memo.value.status = data.status;
+                        
+                        // Notify parent window
+                        if (window.opener && !window.opener.closed) {
+                            window.opener.postMessage({
+                                type: 'memoStatusUpdate',
+                                memoId: memo.value.id,
+                                newStatus: data.status,
+                                statusText: statusMapping[data.status]
+                            }, '*');
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error marking as complete:', error);
+                        alert('처리완료 설정에 실패했습니다.');
+                    }
+                };
+                
+                const cancelComplete = async () => {
+                    try {
+                        const response = await fetch(`${url}memo/${memo.value.id}/cancel_complete`, {
+                            method: "POST",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json",
+                                "Content-Type": "application/json"
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to cancel complete');
+                        }
+                        
+                        const data = await response.json();
+                        memo.value.status = data.status;
+                        
+                        // Notify parent window
+                        if (window.opener && !window.opener.closed) {
+                            window.opener.postMessage({
+                                type: 'memoStatusUpdate',
+                                memoId: memo.value.id,
+                                newStatus: data.status,
+                                statusText: statusMapping[data.status]
+                            }, '*');
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error canceling complete:', error);
+                        alert('처리완료 취소에 실패했습니다.');
+                    }
+                };
+
+                const debugMemoStatus = async (memoId) => {
+                    try {
+                        console.log(`Debugging status for memo ${memoId}`);
+                        
+                        const response = await fetch(`${url}memo/reply/memo/${memoId}/debug`, {
+                            method: "GET",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log("Debug info:", data);
+                        } else {
+                            console.error(`Debug call failed: ${response.status} ${response.statusText}`);
+                        }
+                        
+                    } catch (error) {
+                        console.error("Error debugging memo status:", error);
+                    }
+                };
+
+                // Manual test function for the mark_viewed endpoint
+                const testMarkViewed = async (memoId) => {
+                    console.log(`🧪 Testing mark_viewed for memo ${memoId}`);
+                    
+                    try {
+                        // First get debug info
+                        await debugMemoStatus(memoId);
+                        
+                        // Then try to mark as viewed
+                        const response = await fetch(`${url}memo/reply/memo/${memoId}/mark_viewed`, {
+                            method: "POST",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json",
+                                "Content-Type": "application/json"
+                            }
+                        });
+                        
+                        console.log(`Mark viewed response status: ${response.status}`);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log("✅ Mark viewed successful:", data);
+                        } else {
+                            const errorText = await response.text();
+                            console.error(`❌ Mark viewed failed: ${response.status} ${response.statusText}`, errorText);
+                        }
+                        
+                    } catch (error) {
+                        console.error("Error testing mark viewed:", error);
+                    }
+                };
+
+                const formatDate = (dateString) => {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    
+                    const year = date.getFullYear();
+                    const month = date.getMonth() + 1;
+                    const day = date.getDate();
+                    const hours = date.getHours();
+                    const minutes = date.getMinutes();
+                    
+                    const period = hours < 12 ? '오전' : '오후';
+                    const displayHours = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
+                    const displayMinutes = minutes.toString().padStart(2, '0');
+                    
+                    return `${year}년 ${month}월 ${day}일\n${period} ${displayHours}:${displayMinutes}`;
+                };
+
+                const saveReply = async () => {
+                    if (!replyComment.value.trim()) {
+                        alert('답변 내용을 입력해주세요.');
+                        return;
+                    }
+
+                    try {
+                        // API call to save the reply
+                        const replyData = {
+                            memo_id: memo.value.id,
+                            content: replyComment.value,
+                            user_id: currentUser.value.id
+                        };
+
+                        const response = await fetch(`${url}memo/reply/`, {
+                            method: "POST",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json",
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(replyData)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to save reply');
+                        }
+
+                        const data = await response.json();
+                        console.log('Reply saved:', data);
+
+                        // Upload attachment if selected
+                        if (selectedFile.value) {
+                            console.log('Uploading attachment for reply:', data.id);
+                            const attachment = await uploadAttachment(data.id);
+                            if (attachment) {
+                                console.log('Attachment uploaded successfully:', attachment.filename);
+                            }
+                        }
+
+                        // Clear form
+                        replyComment.value = '';
+                        selectedFile.value = null;
+                        // Clear file input
+                        const fileInput = document.querySelector('input[type="file"]');
+                        if (fileInput) {
+                            fileInput.value = '';
+                        }
+
+                        // Refresh replies list
+                        fetchReplies(memo.value.id);
+                        
+                        // Status will be updated automatically by backend based on last reply author
+                        // Refresh memo data to get updated status
+                        const memoResponse = await fetch(`${url}memo/${memo.value.id}`, {
+                            method: "GET",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        });
+                        
+                        if (memoResponse.ok) {
+                            const updatedMemo = await memoResponse.json();
+                            memo.value.status = updatedMemo.status;
+                            
+                            // Notify parent window about status change
+                            if (window.opener && !window.opener.closed) {
+                                window.opener.postMessage({
+                                    type: 'memoStatusUpdate',
+                                    memoId: memo.value.id,
+                                    newStatus: updatedMemo.status,
+                                    statusText: statusMapping[updatedMemo.status]
+                                }, '*');
+                            }
+                        }
+                        
+                        // Send message to local window process
+                        try {
+                            if (window.chrome && window.chrome.webview) {
+                                // For WebView2
+                                window.chrome.webview.postMessage({
+                                    type: 'command',
+                                    action: 'replySaved',
+                                    memo_id: memo.value.id,
+                                    user_id: currentUser.value.id
+                                });
+                            }
+                        } catch (e) {
+                            console.log('WebView2 message sending failed (probably not in WebView2 environment):', e);
+                        }
+
+                    } catch (error) {
+                        console.error("Error saving reply:", error);
+                        alert('답변 저장 중 오류가 발생했습니다.');
+                    }
+                };
+
+                const startEditing = (reply) => {
+                    // Set editing mode for this reply
+                    reply.editing = true;
+                    reply.editContent = reply.content;
+                };
+
+                const cancelEditing = (reply) => {
+                    // Cancel editing mode
+                    reply.editing = false;
+                };
+
+                const saveEditing = (reply) => {
+                    if (!reply.editContent.trim()) {
+                        alert('답변 내용을 입력해주세요.');
+                        return;
+                    }
+                    
+                    // API call to update the reply
+                    fetch(`${url}memo/reply/${reply.id}`, {
+                        method: "PUT",
+                        credentials: "include",
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ content: reply.editContent })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to update reply');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Update the reply in the list
+                        reply.content = reply.editContent;
+                        reply.editing = false;
+                        reply.modified_at = data.modified_at;
+                    })
+                    .catch(error => {
+                        console.error("Error updating reply:", error);
+                        alert('답변 수정에 실패했습니다: ' + error.message);
+                    });
+                };
+
+                const deleteReply = (reply) => {
+                    if (!confirm('정말로 이 답변을 삭제하시겠습니까?')) {
+                        return;
+                    }
+
+                    // API call to delete the reply
+                    fetch(`${url}memo/reply/${reply.id}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json"
+                        }
+                    })
+                    .then(async response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to delete reply');
+                        }
+                        
+                        // Remove the reply from the list
+                        const index = replies.value.findIndex(r => r.id === reply.id);
+                        if (index !== -1) {
+                            replies.value.splice(index, 1);
+                        }
+                        
+                        // Get updated memo status after reply deletion
+                        try {
+                            const memoResponse = await fetch(`${url}memo/${memo.value.id}`, {
+                                method: "GET",
+                                credentials: "include",
+                                headers: {
+                                    "Accept": "application/json"
+                                }
+                            });
+                            
+                            if (memoResponse.ok) {
+                                const updatedMemo = await memoResponse.json();
+                                const oldStatus = memo.value.status;
+                                memo.value.status = updatedMemo.status;
+                                
+                                console.log(`Reply deleted - memo status changed from ${oldStatus} to ${updatedMemo.status}`);
+                                
+                                // Notify parent window about status change
+                                if (window.opener && !window.opener.closed) {
+                                    window.opener.postMessage({
+                                        type: 'memoStatusUpdate',
+                                        memoId: memo.value.id,
+                                        newStatus: updatedMemo.status,
+                                        statusText: statusMapping[updatedMemo.status]
+                                    }, '*');
+                                    console.log('Reply deleted - status update message sent to parent window');
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error updating memo status after reply deletion:', error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error deleting reply:", error);
+                        alert('답변 삭제에 실패했습니다: ' + error.message);
+                    });
+                };
+
+                const startMemoEditing = () => {
+                    editTitle.value = memo.value.title || '';
+                    editContent.value = memo.value.content || '';
+                    editMode.value = true;
+                };
+
+                const cancelMemoEditing = () => {
+                    editMode.value = false;
+                    editTitle.value = '';
+                    editContent.value = '';
+                };
+
+                const saveMemoEditing = async () => {
+                    if (!editTitle.value.trim()) {
+                        alert('제목을 입력해주세요.');
+                        return;
+                    }
+                    
+                    if (!editContent.value.trim()) {
+                        alert('내용을 입력해주세요.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${url}memo/${memo.value.id}`, {
+                            method: "PUT",
+                            credentials: "include",
+                            headers: {
+                                "Accept": "application/json",
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                title: editTitle.value,
+                                content: editContent.value
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to update memo');
+                        }
+
+                        const data = await response.json();
+                        
+                        // Update the memo data
+                        memo.value.title = editTitle.value;
+                        memo.value.content = editContent.value;
+                        memo.value.modified_at = data.modified_at;
+                        
+                        // Exit edit mode
+                        editMode.value = false;
+                        editTitle.value = '';
+                        editContent.value = '';
+                        
+                        console.log('Memo updated successfully:', data);
+                        
+                    } catch (error) {
+                        console.error("Error updating memo:", error);
+                        alert('메모 수정 중 오류가 발생했습니다: ' + error.message);
+                    }
+                };
+
+                const setupWebSocket = () => {
+                    let ws = null;
+                    const pingInterval = ref(null);
+                    const isConnected = ref(false);
+                    const reconnectTimeout = ref(null);
+                    const connectionPromise = ref(null);
+                    
+                    const connect = () => {
+                        return new Promise((resolve, reject) => {
+                            console.log('Attempting to connect to BEPsApp WebSocket server...');
+                            
+                            // Close existing connection if any
+                            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                                ws.close();
+                            }
+                            
+                            ws = new WebSocket('ws://127.0.0.1:8090');
+                            
+                            const timeout = setTimeout(() => {
+                                if (ws.readyState === WebSocket.CONNECTING) {
+                                    ws.close();
+                                    reject(new Error('Connection timeout'));
+                                }
+                            }, 5000); // 5 second timeout
+                            
+                            ws.onopen = () => {
+                                clearTimeout(timeout);
+                                console.log('WebSocket connection established with BEPsApp');
+                                isConnected.value = true;
+                                
+                                // Send a ping immediately on connection to verify it's working
+                                ws.send(JSON.stringify({
+                                    type: 'command',
+                                    action: 'ping',
+                                    timestamp: Date.now()
+                                }));
+                                
+                                // Set up regular pings to keep connection alive
+                                clearInterval(pingInterval.value);
+                                pingInterval.value = setInterval(() => {
+                                    if (ws && ws.readyState === WebSocket.OPEN) {
+                                        ws.send(JSON.stringify({
+                                            type: 'command',
+                                            action: 'ping',
+                                            timestamp: Date.now()
+                                        }));
+                                    }
+                                }, 30000); // Send a ping every 30 seconds
+                                
+                                resolve();
+                            };
+                            
+                            ws.onmessage = (event) => {
+                                try {
+                                    const data = JSON.parse(event.data);
+                                    console.log('Received message from BEPsApp:', data);
+                                    
+                                    // Handle different message types
+                                    if (data.type === 'response' && data.action === 'pong') {
+                                        console.log('Received pong from BEPsApp - connection confirmed');
+                                    } else if (data.type === 'navigationResult') {
+                                        console.log('Navigation result:', data);
+                                    }
+                                } catch (err) {
+                                    console.error('Error processing WebSocket message:', err);
+                                }
+                            };
+                            
+                            ws.onclose = (event) => {
+                                clearTimeout(timeout);
+                                console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
+                                isConnected.value = false;
+                                clearInterval(pingInterval.value);
+                                
+                                // Only auto-reconnect if this wasn't a manual close
+                                if (event.code !== 1000) {
+                                    // Attempt to reconnect after a delay
+                                    reconnectTimeout.value = setTimeout(() => {
+                                        console.log('Attempting to reconnect...');
+                                        connect().catch(err => console.error('Reconnection failed:', err));
+                                    }, 5000); // Try to reconnect after 5 seconds
+                                }
+                            };
+                            
+                            ws.onerror = (error) => {
+                                clearTimeout(timeout);
+                                console.error('WebSocket error:', error);
+                                isConnected.value = false;
+                                reject(error);
+                            };
+                        });
+                    };
+                    
+                    // Initial connection attempt
+                    connect().catch(err => console.error('Initial connection failed:', err));
+                    
+                    // Cleanup function to be called on component unmount
+                    const cleanup = () => {
+                        clearInterval(pingInterval.value);
+                        clearTimeout(reconnectTimeout.value);
+                        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                            ws.close(1000); // Normal closure
+                        }
+                    };
+                    
+                    // Method to send a message to BEPsApp
+                    const sendMessage = (message) => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify(message));
+                            return true;
+                        } else {
+                            console.error('WebSocket is not connected');
+                            return false;
+                        }
+                    };
+                    
+                    // Method to manually attempt connection
+                    const attemptConnection = () => {
+                        if (!connectionPromise.value) {
+                            connectionPromise.value = connect().finally(() => {
+                                connectionPromise.value = null;
+                            });
+                        }
+                        return connectionPromise.value;
+                    };
+                    
+                    return {
+                        isConnected,
+                        sendMessage,
+                        cleanup,
+                        attemptConnection
+                    };
+                };
+
+                const { isConnected, sendMessage, cleanup, attemptConnection } = setupWebSocket();
+
+                const checkIfAppIsRunning = () => {
+                    return new Promise((resolve) => {
+                        if (isConnected.value) {
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    });
+                };
+
+                const handleGoToClick = async () => {
+                    // If not connected, try to connect first
+                    if (!isConnected.value) {
+                        try {
+                            console.log('WebSocket not connected, attempting to connect...');
+                            await attemptConnection();
+                            console.log('WebSocket connection established');
+                        } catch (error) {
+                            console.error('Failed to establish WebSocket connection:', error);
+                            showAppNotRunningMessage();
+                            return;
+                        }
+                    }
+                    
+                    // Now send the navigation message
+                    if (isConnected.value) {
+                        const navigationData = {
+                            type: 'navigation',
+                            action: 'navigateTo'
+                        };
+                        
+                        // Add all available navigation parameters
+                        if (memo.value.file_id) {
+                            navigationData.fileId = memo.value.file_id;
+                        }
+                        if (memo.value.folder_id) {
+                            navigationData.folderId = memo.value.folder_id;
+                        }
+                        if (memo.value.path) {
+                            navigationData.path = memo.value.path;
+                        }
+                        
+                        sendMessage(navigationData);
+                    } else {
+                        showAppNotRunningMessage();
+                    }
+                };
+
+                // ======== FILE ATTACHMENT FUNCTIONS ========
+                const selectFile = () => {
+                    const fileInput = document.querySelector('input[type="file"]');
+                    fileInput.click();
+                };
+
+                const onFileSelected = (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        // Check file size (50MB limit)
+                        if (file.size > 50 * 1024 * 1024) {
+                            alert('파일 크기가 너무 큽니다. 50MB 이하의 파일을 선택해주세요.');
+                            return;
+                        }
+                        
+                        selectedFile.value = file;
+                        console.log('File selected:', file.name, file.size, file.type);
+                    }
+                };
+
+                const formatFileSize = (bytes) => {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                };
+
+                const uploadAttachment = async (replyId) => {
+                    if (!selectedFile.value) {
+                        return null;
+                    }
+
+                    try {
+                        uploadingFile.value = true;
+                        console.log('Starting attachment upload for reply:', replyId);
+
+                        // 1단계: 백엔드에서 R2 업로드 URL 요청
+                        const urlResponse = await fetch(`${url}memo/reply/${replyId}/attachment/upload-url`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: selectedFile.value.name,
+                                content_type: selectedFile.value.type,
+                                file_size: selectedFile.value.size
+                            })
+                        });
+
+                        if (!urlResponse.ok) {
+                            const errorData = await urlResponse.json();
+                            throw new Error(`업로드 URL 생성 실패: ${errorData.error || urlResponse.status}`);
+                        }
+
+                        const urlData = await urlResponse.json();
+                        console.log('Upload URL received:', urlData.upload_url);
+
+                        // 2단계: R2에 직접 업로드
+                        const uploadResponse = await fetch(urlData.upload_url, {
+                            method: 'PUT',
+                            body: selectedFile.value,
+                            headers: {
+                                'Content-Type': selectedFile.value.type
+                            }
+                        });
+
+                        if (!uploadResponse.ok) {
+                            const errorText = await uploadResponse.text();
+                            throw new Error(`R2 업로드 실패: ${uploadResponse.status} - ${errorText}`);
+                        }
+
+                        console.log('R2 upload completed');
+
+                        // 3단계: 백엔드에 업로드 완료 확인
+                        const confirmResponse = await fetch(`${url}memo/reply/${replyId}/attachment/confirm-upload`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                object_key: urlData.object_key,
+                                filename: selectedFile.value.name,
+                                content_type: selectedFile.value.type,
+                                file_size: selectedFile.value.size
+                            })
+                        });
+
+                        if (!confirmResponse.ok) {
+                            const errorData = await confirmResponse.json();
+                            throw new Error(`업로드 확인 실패: ${errorData.error || confirmResponse.status}`);
+                        }
+
+                        const confirmData = await confirmResponse.json();
+                        console.log('Upload confirmed:', confirmData);
+
+                        return confirmData.attachment;
+
+                    } catch (error) {
+                        console.error('Attachment upload error:', error);
+                        alert(`첨부파일 업로드 중 오류가 발생했습니다: ${error.message}`);
+                        return null;
+                    } finally {
+                        uploadingFile.value = false;
+                    }
+                };
+
+                const viewAttachment = async (attachment) => {
+                    try {
+                        console.log('Viewing attachment:', attachment.filename);
+                        
+                        const response = await fetch(`${url}memo/reply/attachment/${attachment.id}/url`, {
+                            method: 'GET',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`첨부파일 URL 생성 실패: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        
+                        // Open in new window/tab
+                        window.open(data.signed_url, '_blank');
+                        
+                    } catch (error) {
+                        console.error('Error viewing attachment:', error);
+                        alert(`첨부파일을 열 수 없습니다: ${error.message}`);
+                    }
+                };
+
+                const deleteAttachment = async (attachment, reply) => {
+                    if (!confirm(`첨부파일 "${attachment.filename}"을 삭제하시겠습니까?`)) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${url}memo/reply/attachment/${attachment.id}`, {
+                            method: 'DELETE',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`첨부파일 삭제 실패: ${response.status}`);
+                        }
+
+                        // Remove attachment from reply attachments list
+                        const index = reply.attachments.findIndex(a => a.id === attachment.id);
+                        if (index !== -1) {
+                            reply.attachments.splice(index, 1);
+                        }
+
+                        console.log('Attachment deleted successfully');
+                        
+                    } catch (error) {
+                        console.error('Error deleting attachment:', error);
+                        alert(`첨부파일 삭제 중 오류가 발생했습니다: ${error.message}`);
+                    }
+                };
+
+                const showAppNotRunningMessage = () => {
+                    alert("BEPs가 실행중이 아닙니다. BEPs를 실행한 후 다시 시도하세요.");
+                };
+
+                const cancelReply = () => {
+                    if (isConnected.value) {
+                        const cancelData = {
+                            type: 'command',
+                            action: 'replyCancelled',
+                            memo_id: memo.value.id
+                        };
+                        
+                        // Add relevant navigation parameters based on what's available
+                        if (memo.value.file_id) {
+                            cancelData.file_id = memo.value.file_id;
+                        }
+                        if (memo.value.folder_id) {
+                            cancelData.folder_id = memo.value.folder_id;
+                        }
+                        
+                        sendMessage(cancelData);
+                    }
+                    window.close();
+                };
+
+                onMounted(() => {
+                    loadData();
+                    
+                    // Make test functions available globally for debugging
+                    window.testMarkViewed = testMarkViewed;
+                    window.debugMemoStatus = debugMemoStatus;
+                    console.log('🔧 Debug functions available: testMarkViewed(memoId), debugMemoStatus(memoId)');
+                });
+
+                onUnmounted(() => {
+                    cleanup();
+                });
+
+                return {
+                    memo,
+                    replyComment,
+                    currentUser,
+                    replies,
+                    selectedFile,
+                    uploadingFile,
+                    editMode,
+                    editTitle,
+                    editContent,
+                    isAuthor,
+                    saveReply,
+                    cancelReply,
+                    formatDate,
+                    startEditing,
+                    cancelEditing,
+                    saveEditing,
+                    deleteReply,
+                    startMemoEditing,
+                    cancelMemoEditing,
+                    saveMemoEditing,
+                    handleGoToClick,
+                    selectFile,
+                    onFileSelected,
+                    formatFileSize,
+                    viewAttachment,
+                    deleteAttachment,
+                    getStatusIcon,
+                    getStatusText,
+                    markAsComplete,
+                    cancelComplete,
+                    isManager,
+                    isSuperAdmin
+                };
+            }
+        }).mount("#app");
+    </script>
+</body>
+</html> 

@@ -1,0 +1,48 @@
+tags:
+  - User
+summary: "사용자 토큰 유효성 검사 API"
+operationId: token_check
+description: |
+  사용자 토큰의 유효성을 검사합니다. 요청 헤더에 'X-User-Token'을 포함해야 합니다.
+
+  **예시 (JavaScript - fetch):**
+
+  ```javascript
+  fetch('http://172.16.10.191:20000/user/token_check', {
+      method: 'GET',
+      headers: {
+        'X-User-Token': 'your_token_here'
+      }
+  });
+  ```
+responses:
+  200:
+    description: 토큰이 유효합니다.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "OK"
+  401:
+    description: 토큰이 유효하지 않습니다.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Invalid token"
+  500:
+    description: 서버 오류
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "Server error"

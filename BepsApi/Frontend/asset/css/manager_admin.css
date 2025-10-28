@@ -1,0 +1,658 @@
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    min-width: 1600px; /* Ensure minimum width for wide content */
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    min-height: 100vh; /* Ensure body fills full viewport height */
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 1600px; /* Increased from 1400px to be even wider */
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    min-width: 1500px; /* Ensure minimum width */
+    min-height: calc(100vh - 40px); /* Fill height minus body padding */
+    box-sizing: border-box;
+}
+
+h1 {
+    color: #285B4A;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+h2, h3 {
+    color: #333;
+}
+
+.permission-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.permission-header h2 {
+    margin-right: 20px;
+    margin-bottom: 0;
+}
+
+.radio-group {
+    display: flex;
+    gap: 15px;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.radio-group input[type="radio"] {
+    margin-right: 5px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    table-layout: fixed;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.combobox, input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #5bc0de;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #31b0d5;
+}
+
+.error {
+    color: #d9534f;
+    font-size: 14px;
+    margin: 10px 0;
+    display: block;
+}
+
+/* Hide columns based on selected permission scope */
+.hidden {
+    display: none !important;
+}
+
+/* Hide folder2 and folder3 columns */
+.folder2-col,
+.folder3-col {
+    display: none !important;
+}
+
+/* Ensure manager column is always visible */
+.manager-col {
+    display: table-cell !important;
+    width: 300px;
+}
+
+/* Additional specific rules for folder columns */
+input[name="permission-scope"][value="channel"]:checked ~ .input-table .folder-col,
+input[name="permission-scope"][value="channel"]:checked ~ .permissions-list .folder-col,
+input[name="permission-scope"][value="channel"]:checked ~ .input-table .file-col,
+input[name="permission-scope"][value="channel"]:checked ~ .permissions-list .file-col {
+    display: none !important;
+}
+
+/* Fix table layout when columns are hidden */
+th.hidden, td.hidden {
+    width: 0;
+    padding: 0;
+    border: none;
+    overflow: hidden;
+}
+
+/* Ensure proper spacing for visible columns */
+th:not(.hidden), td:not(.hidden) {
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+.permissions-list {
+    margin-top: 30px;
+}
+
+/* Permissions table actions column */
+#permissions-table .edit-btn,
+#permissions-table .delete-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    margin: 2px;
+    width: 45px;
+    display: inline-block;
+    vertical-align: top;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#permissions-table .edit-btn {
+    background-color: #5bc0de;
+}
+
+#permissions-table .edit-btn:hover {
+    background-color: #31b0d5;
+}
+
+#permissions-table .delete-btn {
+    background-color: #d9534f;
+}
+
+#permissions-table .delete-btn:hover {
+    background-color: #c9302c;
+}
+
+/* Manager selection styling */
+.manager-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.manager-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.manager-row:first-child {
+    margin-bottom: 5px;
+}
+
+#manager-input {
+    flex: 1;
+}
+
+.user-comboboxes {
+    display: flex;
+    gap: 5px;
+}
+
+.user-combobox {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.validation-message {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.validation-message.error {
+    color: #d9534f;
+}
+
+.validation-message.success {
+    color: #5cb85c;
+}
+
+/* Permission type column styling */
+.permission-type-col {
+    text-align: center;
+    width: 40px;
+    font-weight: bold;
+    white-space: pre-line;
+}
+
+/* Permissions list header */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.list-header h3 {
+    margin: 0;
+}
+
+.refresh-btn {
+    padding: 5px 10px;
+    font-size: 14px;
+    background-color: #6c757d;
+}
+
+.refresh-btn:hover {
+    background-color: #5a6268;
+}
+
+/* User info columns */
+.company-col {
+    width: 80px;
+    text-align: center;
+}
+
+.department-col {
+    width: 90px;
+    text-align: center;
+}
+
+.position-col {
+    width: 60px;
+    text-align: center;
+}
+
+.name-col {
+    width: 60px;
+    text-align: center;
+}
+
+.id-col {
+    width: 60px;
+    text-align: center;
+}
+
+.action-col {
+    width: 100px;
+    text-align: center;
+}
+
+/* Input table specific column widths */
+.input-table table {
+    table-layout: fixed;
+}
+
+.input-table th,
+.input-table td {
+    vertical-align: top;
+}
+
+/* Manager column in input table - made wider for comboboxes */
+.input-table .manager-col {
+    width: 400px !important;
+}
+
+/* Content columns in permissions table - made wider to show full content */
+#permissions-table th:nth-child(2),
+#permissions-table td:nth-child(2) {
+    width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#permissions-table th:nth-child(3),
+#permissions-table td:nth-child(3) {
+    width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#permissions-table th:nth-child(4),
+#permissions-table td:nth-child(4) {
+    width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#permissions-table th:nth-child(5),
+#permissions-table td:nth-child(5) {
+    width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#permissions-table th:nth-child(6),
+#permissions-table td:nth-child(6) {
+    width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Center both tables horizontally */
+.input-table,
+.permissions-list {
+    width: 100%;
+    text-align: center; /* Center align the content */
+}
+
+.input-table table,
+#permissions-table {
+    margin: 0 auto; /* Center the table itself */
+    display: table; /* Ensure table display */
+}
+
+/* Ensure headers and error messages are also centered */
+.permission-header,
+.list-header,
+#error-message {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.permission-header h2,
+.list-header h3 {
+    margin: 0 auto;
+}
+
+/* Reset text alignment for table cells to left */
+.input-table th,
+.input-table td,
+#permissions-table th,
+#permissions-table td {
+    text-align: left;
+}
+
+/* Keep action column centered */
+.action-col {
+    text-align: center !important;
+}
+
+/* Keep permission type column centered */
+.permission-type-col {
+    text-align: center !important;
+}
+
+/* Permissions table font size - made smaller */
+#permissions-table {
+    font-size: 13px;
+}
+
+#permissions-table th,
+#permissions-table td {
+    font-size: 13px;
+}
+
+/* Update Manager Modal Styles */
+#update-manager-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002;
+}
+
+#update-manager-modal .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+#update-manager-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+#update-manager-modal .modal-header h2 {
+    margin: 0;
+    color: #285B4A;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+#update-manager-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+#update-manager-modal .modal-close:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+#update-manager-modal .modal-body {
+    padding: 20px 25px;
+    flex: 1;
+}
+
+#update-manager-modal .content-info,
+#update-manager-modal .current-info,
+#update-manager-modal .new-manager-section {
+    margin-bottom: 25px;
+}
+
+#update-manager-modal .content-info h3,
+#update-manager-modal .current-info h3,
+#update-manager-modal .new-manager-section h3 {
+    margin: 0 0 10px 0;
+    color: #495057;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 5px;
+}
+
+#update-manager-modal .target-content-info,
+#update-manager-modal .current-manager-info {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #285B4A;
+}
+
+#update-manager-modal .target-content-info p,
+#update-manager-modal .current-manager-info p {
+    margin: 5px 0;
+    color: #495057;
+}
+
+#update-manager-modal .target-content-info strong,
+#update-manager-modal .current-manager-info strong {
+    color: #285B4A;
+}
+
+#update-manager-modal .modal-footer {
+    padding: 15px 25px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    background: #f8f9fa;
+}
+
+#update-manager-modal .cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+#update-manager-modal .cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+#update-manager-modal .modal-message {
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+#update-manager-modal .error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+#update-manager-modal .success-message {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* Update Manager Modal Styles */
+#update-manager-modal .modal-content {
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#update-manager-modal .current-manager-info {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border-left: 4px solid #007bff;
+}
+
+#update-manager-modal .current-manager-details p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+#update-manager-modal .new-manager-section {
+    margin-top: 20px;
+}
+
+#update-manager-modal .manager-selection {
+    background-color: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+#update-manager-modal .manager-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+#update-manager-modal .user-comboboxes {
+    flex-wrap: wrap;
+}
+
+#update-manager-modal .user-combobox {
+    flex: 1;
+    min-width: 120px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+#update-manager-modal #update-manager-input {
+    flex: 2;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#update-manager-modal #update-btn {
+    padding: 8px 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+#update-manager-modal #update-btn:hover {
+    background-color: #218838;
+}
+
+#update-manager-modal .validation-message {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+}
+
+#update-manager-modal .validation-message.success {
+    color: #28a745;
+}
+
+#update-manager-modal .validation-message.error {
+    color: #dc3545;
+}
+
+#update-manager-modal .modal-message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#update-manager-modal .error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+#update-manager-modal .success-message {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+} 
