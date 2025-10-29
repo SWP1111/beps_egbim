@@ -269,34 +269,33 @@ body {
 }
 
 /* Column Widths */
-.expand-col {
-    width: 40px;
-    text-align: center;
-}
-
 .channel-col {
-    width: 15%;
+    width: 10%;
 }
 
 .category-col {
-    width: 15%;
+    width: 10%;
 }
 
 .page-col {
-    width: 18%;
+    width: 15%;
 }
 
-.supervisor-col {
-    width: 18%;
-}
-
-.worker-col {
-    width: 18%;
-}
-
-.action-col {
+.supervisor-name-col,
+.supervisor-position-col,
+.supervisor-id-col,
+.worker-name-col,
+.worker-position-col,
+.worker-id-col {
     width: 10%;
-    text-align: center;
+}
+
+/* Page Cell with Expand Arrow */
+.page-cell-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
 
 /* Expand/Collapse Arrow */
@@ -309,6 +308,7 @@ body {
     width: 20px;
     text-align: center;
     transition: transform 0.2s;
+    flex-shrink: 0;
 }
 
 .expand-arrow.expanded {
@@ -317,7 +317,8 @@ body {
 
 /* Row Styles */
 .content-table tbody tr {
-    transition: background 0.2s;
+    transition: all 0.3s;
+    position: relative;
 }
 
 .content-table tbody tr:hover {
@@ -330,6 +331,28 @@ body {
 
 .content-table tbody tr.category-row {
     background: #fafafa;
+}
+
+/* Expanded Row Styles */
+.content-table tbody tr.expanded {
+    position: relative;
+}
+
+.content-table tbody tr.expanded > td {
+    vertical-align: top;
+}
+
+/* Additional Content Wrapper - appears within expanded row */
+.additional-content-wrapper {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-top: none;
+    z-index: 5;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Merged Cells */
@@ -400,24 +423,12 @@ td.merged-cell {
     background: #d32f2f;
 }
 
-/* Expandable Additional Content Section */
-.additional-content-row {
-    display: none;
-    background: #f9f9f9;
-}
-
-.additional-content-row.expanded {
-    display: table-row;
-}
-
-.additional-content-cell {
-    padding: 0 !important;
-}
-
+/* Additional Content Container */
 .additional-content-container {
     padding: 15px 20px;
     background: #fafafa;
     border-left: 3px solid #3f51b5;
+    min-height: 200px;
 }
 
 .additional-content-header {

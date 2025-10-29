@@ -62,9 +62,153 @@ async function initializePage() {
         // Load content table
         await loadContentTable();
 
+        // Load user combobox options
+        loadCompanyOptions();
+
     } catch (error) {
         console.error('Error initializing page:', error);
         showError('페이지 초기화 중 오류가 발생했습니다.');
+    }
+}
+
+/**
+ * Load company options for user selection
+ */
+async function loadCompanyOptions() {
+    const companySelect = document.getElementById('company-select');
+
+    try {
+        const response = await authenticatedFetch('/user/companies');
+
+        if (!response.ok) {
+            throw new Error('Failed to load company options');
+        }
+
+        const data = await response.json();
+
+        // Clear existing options except the first placeholder
+        companySelect.innerHTML = '<option value="">회사명</option>';
+
+        // Add new options
+        if (Array.isArray(data)) {
+            data.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company;
+                option.textContent = company;
+                companySelect.appendChild(option);
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading company options:', error);
+        companySelect.innerHTML = '<option value="">회사명</option>';
+    }
+}
+
+/**
+ * Load department options based on selected company
+ */
+async function loadDepartmentOptions(company) {
+    const departmentSelect = document.getElementById('department-select');
+
+    try {
+        const response = await authenticatedFetch(`/user/departments?company=${encodeURIComponent(company)}`);
+
+        if (!response.ok) {
+            throw new Error('Failed to load department options');
+        }
+
+        const data = await response.json();
+
+        // Clear existing options except the first placeholder
+        departmentSelect.innerHTML = '<option value="">부서</option>';
+
+        // Add new options
+        if (Array.isArray(data)) {
+            data.forEach(department => {
+                const option = document.createElement('option');
+                option.value = department;
+                option.textContent = department;
+                departmentSelect.appendChild(option);
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading department options:', error);
+        departmentSelect.innerHTML = '<option value="">부서</option>';
+    }
+}
+
+/**
+ * Load position options based on selected company and department
+ */
+async function loadPositionOptions(company, department) {
+    const positionSelect = document.getElementById('position-select');
+
+    try {
+        const response = await authenticatedFetch(`/user/positions?company=${encodeURIComponent(company)}&department=${encodeURIComponent(department)}`);
+
+        if (!response.ok) {
+            throw new Error('Failed to load position options');
+        }
+
+        const data = await response.json();
+
+        // Clear existing options except the first placeholder
+        positionSelect.innerHTML = '<option value="">직책</option>';
+
+        // Add new options
+        if (Array.isArray(data)) {
+            data.forEach(position => {
+                const option = document.createElement('option');
+                option.value = position;
+                option.textContent = position;
+                positionSelect.appendChild(option);
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading position options:', error);
+        positionSelect.innerHTML = '<option value="">직책</option>';
+    }
+}
+
+/**
+ * Load name options based on selected company, department, and position
+ */
+async function loadNameOptions(company, department, position) {
+    const nameSelect = document.getElementById('name-select');
+
+    if (!company || !department || !position) {
+        nameSelect.innerHTML = '<option value="">이름</option>';
+        return;
+    }
+
+    try {
+        const response = await authenticatedFetch(`/user/names?company=${encodeURIComponent(company)}&department=${encodeURIComponent(department)}&position=${encodeURIComponent(position)}`);
+
+        if (!response.ok) {
+            throw new Error('Failed to load name options');
+        }
+
+        const data = await response.json();
+
+        // Clear existing options except the first placeholder
+        nameSelect.innerHTML = '<option value="">이름</option>';
+
+        // Add new options
+        if (Array.isArray(data)) {
+            data.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                nameSelect.appendChild(option);
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading name options:', error);
+        nameSelect.innerHTML = '<option value="">이름</option>';
     }
 }
 
@@ -213,6 +357,60 @@ function setupEventHandlers() {
 
     // Image modal specific
     document.getElementById('image-modal-close-footer').addEventListener('click', closeImageModal);
+
+    // User combobox cascading event handlers
+    const companySelect = document.getElementById('company-select');
+    const departmentSelect = document.getElementById('department-select');
+    const positionSelect = document.getElementById('position-select');
+    const nameSelect = document.getElementById('name-select');
+
+    // Company change - load departments and clear downstream
+    companySelect.addEventListener('change', function() {
+        departmentSelect.innerHTML = '<option value="">부서</option>';
+        positionSelect.innerHTML = '<option value="">직책</option>';
+        nameSelect.innerHTML = '<option value="">이름</option>';
+
+        if (this.value) {
+            loadDepartmentOptions(this.value);
+        }
+    });
+
+    // Department change - load positions and clear downstream
+    departmentSelect.addEventListener('change', function() {
+        positionSelect.innerHTML = '<option value="">직책</option>';
+        nameSelect.innerHTML = '<option value="">이름</option>';
+
+        if (this.value && companySelect.value) {
+            loadPositionOptions(companySelect.value, this.value);
+        }
+    });
+
+    // Position change - load names
+    positionSelect.addEventListener('change', function() {
+        nameSelect.innerHTML = '<option value="">이름</option>';
+
+        if (this.value && companySelect.value && departmentSelect.value) {
+            loadNameOptions(companySelect.value, departmentSelect.value, this.value);
+        }
+    });
+
+    // Name select - update the input fields with the selected user ID
+    nameSelect.addEventListener('change', function() {
+        const selectedUserId = this.value;
+        if (selectedUserId) {
+            // Determine which input to populate based on current selection
+            const categoryId = document.getElementById('category-select').value;
+            const pageId = document.getElementById('page-select').value;
+
+            if (pageId) {
+                // If page is selected, populate worker input
+                document.getElementById('worker-input').value = selectedUserId;
+            } else if (categoryId) {
+                // If only category is selected, populate supervisor input
+                document.getElementById('supervisor-input').value = selectedUserId;
+            }
+        }
+    });
 }
 
 /**
@@ -314,10 +512,10 @@ async function addWorker() {
  */
 async function loadContentTable() {
     const tbody = document.getElementById('content-table-body');
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-message">컨텐츠 목록을 불러오는 중...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="loading-message">컨텐츠 목록을 불러오는 중...</td></tr>';
 
     if (!hierarchyData || !hierarchyData.channels) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-message">표시할 데이터가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="loading-message">표시할 데이터가 없습니다.</td></tr>';
         return;
     }
 
@@ -364,10 +562,6 @@ async function loadContentTable() {
                     );
                     tbody.appendChild(row);
 
-                    // Additional content row (hidden by default)
-                    const additionalRow = createAdditionalContentRow(page);
-                    tbody.appendChild(additionalRow);
-
                     isFirstChannelRow = false;
                     isFirstCategoryRow = false;
                 });
@@ -382,20 +576,9 @@ async function loadContentTable() {
 function createTableRow(channel, category, page, isFirstChannelRow, channelRowSpan, isFirstCategoryRow, categoryRowSpan) {
     const row = document.createElement('tr');
     row.className = page ? 'page-row' : 'category-row';
-
-    // Expand arrow column (only for pages)
-    const expandCell = document.createElement('td');
     if (page) {
-        const arrow = document.createElement('span');
-        arrow.className = 'expand-arrow';
-        arrow.textContent = '▶';
-        arrow.dataset.pageId = page.id;
-        arrow.addEventListener('click', function() {
-            toggleAdditionalContent(page.id, arrow);
-        });
-        expandCell.appendChild(arrow);
+        row.dataset.pageId = page.id;
     }
-    row.appendChild(expandCell);
 
     // Channel column (merged for all rows in channel)
     if (isFirstChannelRow) {
@@ -415,167 +598,69 @@ function createTableRow(channel, category, page, isFirstChannelRow, channelRowSp
         row.appendChild(categoryCell);
     }
 
-    // Page column
+    // Page column (with expand button at the end)
     const pageCell = document.createElement('td');
-    pageCell.textContent = page ? page.name : '-';
-    if (page && page.has_pending) {
-        const badge = document.createElement('span');
-        badge.className = 'pending-badge';
-        badge.textContent = 'NEW';
-        pageCell.appendChild(badge);
+    pageCell.className = 'page-cell-wrapper';
+
+    if (page) {
+        // Remove file extension from page name
+        const pageName = page.name.replace(/\.(png|jpg|jpeg|gif|bmp|svg)$/i, '');
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = pageName;
+        pageCell.appendChild(nameSpan);
+
+        if (page.has_pending) {
+            const badge = document.createElement('span');
+            badge.className = 'pending-badge';
+            badge.textContent = 'NEW';
+            pageCell.appendChild(badge);
+        }
+
+        // Expand arrow at the end
+        const arrow = document.createElement('span');
+        arrow.className = 'expand-arrow';
+        arrow.textContent = '▶';
+        arrow.dataset.pageId = page.id;
+        arrow.addEventListener('click', function() {
+            toggleAdditionalContent(page.id, arrow, row);
+        });
+        pageCell.appendChild(arrow);
+    } else {
+        pageCell.textContent = '-';
     }
     row.appendChild(pageCell);
 
-    // Supervisor column (책임자) - from category
+    // Supervisor columns (책임자) - 3 separate columns (name, position, id) - from category
     if (isFirstCategoryRow) {
-        const supervisorCell = document.createElement('td');
-        supervisorCell.rowSpan = categoryRowSpan;
-        if (category.manager) {
-            supervisorCell.appendChild(createManagerInfo(category.manager));
-        } else {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.className = 'manager-info empty';
-            emptyDiv.textContent = '미지정';
-            supervisorCell.appendChild(emptyDiv);
-        }
-        row.appendChild(supervisorCell);
+        const supervisorNameCell = document.createElement('td');
+        supervisorNameCell.rowSpan = categoryRowSpan;
+        supervisorNameCell.textContent = category.manager ? (category.manager.name || '-') : '미지정';
+        row.appendChild(supervisorNameCell);
+
+        const supervisorPositionCell = document.createElement('td');
+        supervisorPositionCell.rowSpan = categoryRowSpan;
+        supervisorPositionCell.textContent = category.manager ? (category.manager.position || '-') : '-';
+        row.appendChild(supervisorPositionCell);
+
+        const supervisorIdCell = document.createElement('td');
+        supervisorIdCell.rowSpan = categoryRowSpan;
+        supervisorIdCell.textContent = category.manager ? (category.manager.user_id || '-') : '-';
+        row.appendChild(supervisorIdCell);
     }
 
-    // Worker column (실무자) - from page
-    const workerCell = document.createElement('td');
-    if (page && page.manager) {
-        workerCell.appendChild(createManagerInfo(page.manager));
-    } else {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'manager-info empty';
-        emptyDiv.textContent = page ? '미지정' : '-';
-        workerCell.appendChild(emptyDiv);
-    }
-    row.appendChild(workerCell);
+    // Worker columns (실무자) - 3 separate columns (name, position, id) - from page
+    const workerNameCell = document.createElement('td');
+    workerNameCell.textContent = page && page.manager ? (page.manager.name || '-') : (page ? '미지정' : '-');
+    row.appendChild(workerNameCell);
 
-    // Action column
-    const actionCell = document.createElement('td');
-    actionCell.className = 'action-col';
-    if (page || (category && !page)) {
-        const btnContainer = document.createElement('div');
-        btnContainer.className = 'action-buttons';
+    const workerPositionCell = document.createElement('td');
+    workerPositionCell.textContent = page && page.manager ? (page.manager.position || '-') : '-';
+    row.appendChild(workerPositionCell);
 
-        // Edit button
-        const editBtn = document.createElement('button');
-        editBtn.className = 'edit-btn';
-        editBtn.textContent = '수정';
-        editBtn.addEventListener('click', () => {
-            if (page) {
-                editPageManager(page.id);
-            } else {
-                editCategoryManager(category.id);
-            }
-        });
-        btnContainer.appendChild(editBtn);
-
-        // Delete button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = '삭제';
-        deleteBtn.addEventListener('click', () => {
-            if (page) {
-                deletePageManager(page.id);
-            } else {
-                deleteCategoryManager(category.id);
-            }
-        });
-        btnContainer.appendChild(deleteBtn);
-
-        actionCell.appendChild(btnContainer);
-    }
-    row.appendChild(actionCell);
-
-    return row;
-}
-
-/**
- * Create manager info display
- */
-function createManagerInfo(manager) {
-    const div = document.createElement('div');
-    div.className = 'manager-info';
-
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'name';
-    nameSpan.textContent = manager.name || '-';
-    div.appendChild(nameSpan);
-
-    const positionSpan = document.createElement('span');
-    positionSpan.className = 'position';
-    positionSpan.textContent = manager.position || '-';
-    div.appendChild(positionSpan);
-
-    const idSpan = document.createElement('span');
-    idSpan.className = 'id';
-    idSpan.textContent = manager.user_id || '-';
-    div.appendChild(idSpan);
-
-    return div;
-}
-
-/**
- * Create additional content row (expandable section)
- */
-function createAdditionalContentRow(page) {
-    const row = document.createElement('tr');
-    row.className = 'additional-content-row';
-    row.id = `additional-content-${page.id}`;
-
-    const cell = document.createElement('td');
-    cell.colSpan = 7;
-    cell.className = 'additional-content-cell';
-
-    const container = document.createElement('div');
-    container.className = 'additional-content-container';
-    container.id = `additional-container-${page.id}`;
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'additional-content-header';
-    header.innerHTML = '<h4>페이지 이미지 및 추가 컨텐츠</h4>';
-    container.appendChild(header);
-
-    // Page image section
-    const imageSection = document.createElement('div');
-    imageSection.className = 'page-image-section';
-    imageSection.innerHTML = `
-        <div class="page-image-item">
-            <div class="page-image-info">
-                <span class="page-image-icon">🖼️</span>
-                <span class="page-image-name">${page.name}.png</span>
-                <span class="pending-badge" id="page-pending-${page.id}" style="display: ${page.has_pending ? 'inline-block' : 'none'}">대기중</span>
-            </div>
-            <div class="page-image-actions">
-                <button class="icon-btn view-btn" onclick="viewPageImage(${page.id})">보기</button>
-                <button class="icon-btn upload-btn" onclick="uploadPageToPending(${page.id})">업로드</button>
-                <button class="icon-btn update-btn" id="approve-page-${page.id}" onclick="approvePageUpdate(${page.id})" style="display: ${page.has_pending ? 'inline-block' : 'none'}">업데이트</button>
-            </div>
-        </div>
-    `;
-    container.appendChild(imageSection);
-
-    // Additional files section
-    const filesSection = document.createElement('div');
-    filesSection.className = 'additional-files-section';
-    filesSection.id = `additional-files-${page.id}`;
-    filesSection.innerHTML = `
-        <div class="additional-content-header">
-            <h4>추가 컨텐츠</h4>
-            <button class="icon-btn add-btn" onclick="addAdditionalContent(${page.id})">+ 추가</button>
-        </div>
-        <div class="additional-files-list" id="additional-files-list-${page.id}">
-            <div class="loading-message" style="padding: 20px;">불러오는 중...</div>
-        </div>
-    `;
-    container.appendChild(filesSection);
-
-    cell.appendChild(container);
-    row.appendChild(cell);
+    const workerIdCell = document.createElement('td');
+    workerIdCell.textContent = page && page.manager ? (page.manager.user_id || '-') : '-';
+    row.appendChild(workerIdCell);
 
     return row;
 }
@@ -583,24 +668,99 @@ function createAdditionalContentRow(page) {
 /**
  * Toggle additional content visibility
  */
-async function toggleAdditionalContent(pageId, arrowElement) {
-    const row = document.getElementById(`additional-content-${pageId}`);
+async function toggleAdditionalContent(pageId, arrowElement, row) {
+    const existingContainer = row.querySelector('.additional-content-wrapper');
 
-    if (row.classList.contains('expanded')) {
+    if (existingContainer) {
         // Collapse
         row.classList.remove('expanded');
         arrowElement.classList.remove('expanded');
+        existingContainer.remove();
     } else {
         // Expand
         row.classList.add('expanded');
         arrowElement.classList.add('expanded');
 
-        // Load additional content if not loaded yet
-        const listContainer = document.getElementById(`additional-files-list-${pageId}`);
-        if (listContainer.querySelector('.loading-message')) {
-            await loadAdditionalContent(pageId);
+        // Get page data
+        const page = getPageById(pageId);
+        if (!page) return;
+
+        // Create wrapper that spans all columns
+        const wrapper = document.createElement('div');
+        wrapper.className = 'additional-content-wrapper';
+        wrapper.id = `additional-content-${pageId}`;
+
+        // Create container for the expanded content
+        const container = document.createElement('div');
+        container.className = 'additional-content-container';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'additional-content-header';
+        header.innerHTML = '<h4>페이지 이미지 및 추가 컨텐츠</h4>';
+        container.appendChild(header);
+
+        // Page image section
+        const imageSection = document.createElement('div');
+        imageSection.className = 'page-image-section';
+        // Remove double extension - page.name already has extension
+        const pageFileName = page.name.replace(/\.(png|jpg|jpeg|gif|bmp|svg)$/i, '') + '.png';
+        imageSection.innerHTML = `
+            <div class="page-image-item">
+                <div class="page-image-info">
+                    <span class="page-image-icon">🖼️</span>
+                    <span class="page-image-name">${pageFileName}</span>
+                    <span class="pending-badge" id="page-pending-${page.id}" style="display: ${page.has_pending ? 'inline-block' : 'none'}">대기중</span>
+                </div>
+                <div class="page-image-actions">
+                    <button class="icon-btn view-btn" onclick="viewPageImage(${page.id})">보기</button>
+                    <button class="icon-btn upload-btn" onclick="uploadPageToPending(${page.id})">업로드</button>
+                    <button class="icon-btn update-btn" id="approve-page-${page.id}" onclick="approvePageUpdate(${page.id})" style="display: ${page.has_pending ? 'inline-block' : 'none'}">업데이트</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(imageSection);
+
+        // Additional files section
+        const filesSection = document.createElement('div');
+        filesSection.className = 'additional-files-section';
+        filesSection.id = `additional-files-${page.id}`;
+        filesSection.innerHTML = `
+            <div class="additional-content-header">
+                <h4>추가 컨텐츠</h4>
+                <button class="icon-btn add-btn" onclick="addAdditionalContent(${page.id})">+ 추가</button>
+            </div>
+            <div class="additional-files-list" id="additional-files-list-${page.id}">
+                <div class="loading-message" style="padding: 20px;">불러오는 중...</div>
+            </div>
+        `;
+        container.appendChild(filesSection);
+
+        wrapper.appendChild(container);
+
+        // Insert the wrapper at the end of the row
+        row.appendChild(wrapper);
+
+        // Load additional content
+        await loadAdditionalContent(pageId);
+    }
+}
+
+/**
+ * Helper function to get page data by ID
+ */
+function getPageById(pageId) {
+    if (!hierarchyData || !hierarchyData.channels) return null;
+
+    for (const channel of hierarchyData.channels) {
+        if (!channel.categories) continue;
+        for (const category of channel.categories) {
+            if (!category.pages) continue;
+            const page = category.pages.find(p => p.id == pageId);
+            if (page) return page;
         }
     }
+    return null;
 }
 
 /**
@@ -1059,29 +1219,6 @@ function getCurrentPageId() {
         return parseInt(id);
     }
     return null;
-}
-
-/**
- * Edit/delete manager functions (placeholder - implement as needed)
- */
-function editCategoryManager(categoryId) {
-    alert(`Edit category manager: ${categoryId} (기능 준비 중)`);
-}
-
-function editPageManager(pageId) {
-    alert(`Edit page manager: ${pageId} (기능 준비 중)`);
-}
-
-function deleteCategoryManager(categoryId) {
-    if (confirm('이 카테고리의 책임자를 삭제하시겠습니까?')) {
-        alert(`Delete category manager: ${categoryId} (기능 준비 중)`);
-    }
-}
-
-function deletePageManager(pageId) {
-    if (confirm('이 페이지의 실무자를 삭제하시겠습니까?')) {
-        alert(`Delete page manager: ${pageId} (기능 준비 중)`);
-    }
 }
 
 // Make functions globally accessible
