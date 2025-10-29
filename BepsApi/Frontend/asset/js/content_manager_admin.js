@@ -448,12 +448,12 @@ async function addSupervisor() {
     }
 
     try {
-        const response = await authenticatedFetch('/contents/assign-manager', {
+        const response = await authenticatedFetch('/contents/content_manager', {
             method: 'POST',
             body: JSON.stringify({
-                folder_id: categoryId,
-                manager_id: supervisorId,
-                manager_type: 'supervisor'
+                user_id: supervisorId,
+                type: 'folder',
+                folder_id: parseInt(categoryId)
             })
         });
 
@@ -495,12 +495,12 @@ async function addWorker() {
     }
 
     try {
-        const response = await authenticatedFetch('/contents/assign-manager', {
+        const response = await authenticatedFetch('/contents/content_manager', {
             method: 'POST',
             body: JSON.stringify({
-                file_id: pageId,
-                manager_id: workerId,
-                manager_type: 'worker'
+                user_id: workerId,
+                type: 'file',
+                file_id: parseInt(pageId)
             })
         });
 
