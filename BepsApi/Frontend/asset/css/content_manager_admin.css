@@ -281,6 +281,15 @@ body {
     width: 15%;
 }
 
+/* Manager header (책임자/실무자) */
+.supervisor-header,
+.worker-header {
+    text-align: center;
+    background: #e8eaf6;
+    font-weight: 700;
+    color: #3f51b5;
+}
+
 .supervisor-name-col,
 .supervisor-position-col,
 .supervisor-id-col,
