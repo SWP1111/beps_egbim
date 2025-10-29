@@ -286,6 +286,65 @@
             </div>
         </div>
 
+        <!-- Manager Replacement Confirmation Modal -->
+        <div id="replace-manager-modal" class="modal" style="display: none;">
+            <div class="modal-content replace-manager-modal">
+                <div class="modal-header">
+                    <h2>담당자 변경 확인</h2>
+                    <button class="modal-close" id="replace-manager-close-btn">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="replace-manager-message">
+                        기존에 등록된 담당자가 있습니다.
+                    </p>
+                    <div class="manager-comparison">
+                        <div class="manager-box existing-manager">
+                            <h4>기존 담당자</h4>
+                            <div class="manager-details">
+                                <div class="manager-field">
+                                    <span class="field-label">이름:</span>
+                                    <span id="existing-manager-name" class="field-value"></span>
+                                </div>
+                                <div class="manager-field">
+                                    <span class="field-label">직책:</span>
+                                    <span id="existing-manager-position" class="field-value"></span>
+                                </div>
+                                <div class="manager-field">
+                                    <span class="field-label">사번:</span>
+                                    <span id="existing-manager-id" class="field-value"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="arrow-divider">→</div>
+                        <div class="manager-box new-manager">
+                            <h4>새로운 담당자</h4>
+                            <div class="manager-details">
+                                <div class="manager-field">
+                                    <span class="field-label">이름:</span>
+                                    <span id="new-manager-name" class="field-value"></span>
+                                </div>
+                                <div class="manager-field">
+                                    <span class="field-label">직책:</span>
+                                    <span id="new-manager-position" class="field-value"></span>
+                                </div>
+                                <div class="manager-field">
+                                    <span class="field-label">사번:</span>
+                                    <span id="new-manager-id" class="field-value"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="replace-manager-question">새로운 담당자로 변경하시겠습니까?</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="replace-manager-yes-btn" class="confirm-btn">예</button>
+                    <button id="replace-manager-no-btn" class="cancel-btn">아니오</button>
+                </div>
+            </div>
+        </div>
+
         <div id="modal-overlay" class="modal-overlay" style="display: none;"></div>
     </div>
 </body>

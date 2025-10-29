@@ -457,6 +457,49 @@ async function addSupervisor() {
             })
         });
 
+        if (response.status === 409) {
+            // Conflict - manager already exists, show replacement modal
+            const existingManager = await getExistingManager('folder', categoryId);
+            const newManager = await getUserInfo(supervisorId);
+
+            if (existingManager) {
+                showReplaceManagerModal(existingManager, newManager, async () => {
+                    // User confirmed replacement, update the manager
+                    try {
+                        const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                user_id: supervisorId,
+                                type: 'folder',
+                                folder_id: parseInt(categoryId)
+                            })
+                        });
+
+                        if (!updateResponse.ok) {
+                            const errorData = await updateResponse.json();
+                            throw new Error(errorData.error || '책임자 변경 실패');
+                        }
+
+                        alert('책임자가 성공적으로 변경되었습니다.');
+
+                        // Clear input
+                        document.getElementById('supervisor-input').value = '';
+
+                        // Reload data
+                        await loadHierarchyWithManagers();
+                        await loadContentTable();
+
+                    } catch (error) {
+                        console.error('Error updating supervisor:', error);
+                        showError(error.message);
+                    }
+                });
+            } else {
+                showError('기존 담당자 정보를 가져올 수 없습니다.');
+            }
+            return;
+        }
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || '책임자 추가 실패');
@@ -503,6 +546,49 @@ async function addWorker() {
                 file_id: parseInt(pageId)
             })
         });
+
+        if (response.status === 409) {
+            // Conflict - manager already exists, show replacement modal
+            const existingManager = await getExistingManager('file', pageId);
+            const newManager = await getUserInfo(workerId);
+
+            if (existingManager) {
+                showReplaceManagerModal(existingManager, newManager, async () => {
+                    // User confirmed replacement, update the manager
+                    try {
+                        const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                user_id: workerId,
+                                type: 'file',
+                                file_id: parseInt(pageId)
+                            })
+                        });
+
+                        if (!updateResponse.ok) {
+                            const errorData = await updateResponse.json();
+                            throw new Error(errorData.error || '실무자 변경 실패');
+                        }
+
+                        alert('실무자가 성공적으로 변경되었습니다.');
+
+                        // Clear input
+                        document.getElementById('worker-input').value = '';
+
+                        // Reload data
+                        await loadHierarchyWithManagers();
+                        await loadContentTable();
+
+                    } catch (error) {
+                        console.error('Error updating worker:', error);
+                        showError(error.message);
+                    }
+                });
+            } else {
+                showError('기존 담당자 정보를 가져올 수 없습니다.');
+            }
+            return;
+        }
 
         if (!response.ok) {
             const errorData = await response.json();
@@ -1203,6 +1289,101 @@ function showError(message) {
     setTimeout(() => {
         errorDiv.style.display = 'none';
     }, 5000);
+}
+
+/**
+ * Get user info by user ID
+ */
+async function getUserInfo(userId) {
+    try {
+        const response = await authenticatedFetch(`/user/info?user_id=${encodeURIComponent(userId)}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch user info');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching user info:', error);
+        return { id: userId, name: '알 수 없음', position: '알 수 없음' };
+    }
+}
+
+/**
+ * Get existing manager for content
+ */
+async function getExistingManager(type, contentId) {
+    try {
+        const response = await authenticatedFetch('/contents/content_manager');
+        if (!response.ok) {
+            throw new Error('Failed to fetch managers');
+        }
+
+        const managers = await response.json();
+        const idField = type === 'folder' ? 'folder_id' : 'file_id';
+
+        const manager = managers.find(m => m.type === type && m[idField] == contentId);
+
+        if (manager && manager.assignee) {
+            return {
+                id: manager.id,
+                name: manager.assignee.name,
+                position: manager.assignee.position,
+                user_id: manager.assignee.user_id
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error fetching existing manager:', error);
+        return null;
+    }
+}
+
+/**
+ * Show replace manager confirmation modal
+ */
+function showReplaceManagerModal(existingManager, newManager, onConfirm) {
+    const modal = document.getElementById('replace-manager-modal');
+    const overlay = document.getElementById('modal-overlay');
+
+    // Fill in existing manager info
+    document.getElementById('existing-manager-name').textContent = existingManager.name || '-';
+    document.getElementById('existing-manager-position').textContent = existingManager.position || '-';
+    document.getElementById('existing-manager-id').textContent = existingManager.user_id || '-';
+
+    // Fill in new manager info
+    document.getElementById('new-manager-name').textContent = newManager.name || '-';
+    document.getElementById('new-manager-position').textContent = newManager.position || '-';
+    document.getElementById('new-manager-id').textContent = newManager.user_id || '-';
+
+    // Show modal
+    modal.classList.add('show');
+    overlay.classList.add('show');
+
+    // Setup event handlers
+    const yesBtn = document.getElementById('replace-manager-yes-btn');
+    const noBtn = document.getElementById('replace-manager-no-btn');
+    const closeBtn = document.getElementById('replace-manager-close-btn');
+
+    const handleYes = async () => {
+        cleanup();
+        await onConfirm();
+    };
+
+    const handleNo = () => {
+        cleanup();
+    };
+
+    const cleanup = () => {
+        modal.classList.remove('show');
+        overlay.classList.remove('show');
+        yesBtn.removeEventListener('click', handleYes);
+        noBtn.removeEventListener('click', handleNo);
+        closeBtn.removeEventListener('click', handleNo);
+    };
+
+    yesBtn.addEventListener('click', handleYes);
+    noBtn.addEventListener('click', handleNo);
+    closeBtn.addEventListener('click', handleNo);
 }
 
 /**
