@@ -5,7 +5,10 @@
       "Bash(PGPASSWORD=postgres psql:*)",
       "Bash(python3:*)",
       "Read(//usr/bin/**)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []

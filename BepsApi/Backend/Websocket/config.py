@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     # API 서버 설정
-    API_BASE_URL = os.getenv("API_BASE_URL", "http://172.16.8.216:20000")  # 🔹 API 서버 기본 URL
+    API_BASE_URL = os.getenv("API_BASE_URL", "http://172.16.40.192:20000")  # 🔹 API 서버 기본 URL
     
     # WebSocket 서버 설정
     WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST", "0.0.0.0")  # 🔹 WebSocket 서버 호스트

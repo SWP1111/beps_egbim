@@ -9,7 +9,7 @@ description: |
   **예시 (JavaScript - fetch):**
   
   ```javascript
-  fetch('http://172.16.8.216:20000/user/user_info?id={사번}', {
+  fetch('http://172.16.40.192:20000/user/user_info?id={사번}', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`

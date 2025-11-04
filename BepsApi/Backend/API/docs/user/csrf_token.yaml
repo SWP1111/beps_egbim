@@ -8,7 +8,7 @@ description: |
   **예시 (JavaScript - fetch):**
 
   ```javascript
-  fetch('http://172.16.8.216:20000/user/csrf_token', {
+  fetch('http://172.16.40.192:20000/user/csrf_token', {
     method: 'GET',
     credentials: 'include'
   });
