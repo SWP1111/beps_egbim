@@ -3,7 +3,7 @@ var contentHierarchy = null;
 
 // Helper function to get base API URL
 function getBaseApiUrl() {
-    const url = typeof baseUrl !== "undefined" ? baseUrl : "http://172.16.8.208:20000";
+    const url = typeof baseUrl !== "undefined" ? baseUrl : "http://172.16.40.192:20000";
     return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const validationMessage = document.getElementById('validation-message');
 
     // Base API URL from config
-    const url = typeof baseUrl !== "undefined" ? baseUrl : "http://172.16.8.208:20000";
+    const url = typeof baseUrl !== "undefined" ? baseUrl : "http://172.16.40.192:20000";
     
     // Ensure url doesn't end with a slash
     const baseApiUrl = url.endsWith('/') ? url.slice(0, -1) : url;

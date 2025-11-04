@@ -2,7 +2,7 @@ console.log("progress.js");
 
 const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-const url = typeof baseUrl != "undefined" ? baseUrl : "http://172.16.8.208:20000/";
+const url = typeof baseUrl != "undefined" ? baseUrl : "http://172.16.40.192:20000/";
 
 createApp({
     setup() {
