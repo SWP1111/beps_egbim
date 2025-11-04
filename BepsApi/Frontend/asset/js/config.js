@@ -1,8 +1,17 @@
-const baseUrl = "http://172.16.40.192:20000/";
+/**
+ * ⚠️ DEPRECATED: This file is kept for backward compatibility only.
+ * Configuration is now loaded from env-config.js
+ * 
+ * To change IP addresses, edit: asset/js/env-config.js
+ */
+
+// These values are set by env-config.js (loaded before this file)
+// If env-config.js hasn't loaded for some reason, use fallback values
+const baseUrl = window.baseUrl || "http://172.16.40.192:20000/";
 window.baseUrl = baseUrl;
 
-window.websocketUrl="ws://172.16.40.192:20000/websocket/";
+const websocketUrl = window.websocketUrl || "ws://172.16.40.192:20000/websocket/";
+window.websocketUrl = websocketUrl;
 
-// config.js 맨 아래에 추가
 console.log("✅ config.js loaded. baseUrl =", window.baseUrl);
 
