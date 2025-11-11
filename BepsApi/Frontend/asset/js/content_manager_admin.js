@@ -417,22 +417,38 @@ function setupEventHandlers() {
                 console.log('Filling worker-input with:', selectedUserId);
                 document.getElementById('worker-input').value = selectedUserId;
                 document.getElementById('supervisor-input').value = '';
+                validateUserID(selectedUserId);
             } else if (categoryId) {
                 // If only category is selected, populate supervisor input and clear worker
                 console.log('Filling supervisor-input with:', selectedUserId);
                 document.getElementById('supervisor-input').value = selectedUserId;
                 document.getElementById('worker-input').value = '';
+                validateUserID(selectedUserId);
             } else {
                 // No selection - could fill both or neither, let's fill both
                 console.log('No category/page selected, filling both inputs');
                 document.getElementById('supervisor-input').value = selectedUserId;
                 document.getElementById('worker-input').value = selectedUserId;
+                validateUserID(selectedUserId);
             }
         } else {
             // Clear both inputs when name is deselected
             document.getElementById('supervisor-input').value = '';
             document.getElementById('worker-input').value = '';
+            validateUserID('');
         }
+    });
+
+    // Supervisor input validation
+    const supervisorInput = document.getElementById('supervisor-input');
+    supervisorInput.addEventListener('input', function() {
+        validateUserID(this.value.trim());
+    });
+
+    // Worker input validation
+    const workerInput = document.getElementById('worker-input');
+    workerInput.addEventListener('input', function() {
+        validateUserID(this.value.trim());
     });
 }
 
@@ -1359,7 +1375,7 @@ function showReplaceManagerModal(existingManager, newManager, onConfirm) {
     // Fill in new manager info
     document.getElementById('new-manager-name').textContent = newManager.name || '-';
     document.getElementById('new-manager-position').textContent = newManager.position || '-';
-    document.getElementById('new-manager-id').textContent = newManager.user_id || '-';
+    document.getElementById('new-manager-id').textContent = newManager.id || '-';
 
     // Show modal
     modal.style.display = 'block';
@@ -1390,6 +1406,44 @@ function showReplaceManagerModal(existingManager, newManager, onConfirm) {
     yesBtn.addEventListener('click', handleYes);
     noBtn.addEventListener('click', handleNo);
     closeBtn.addEventListener('click', handleNo);
+}
+
+/**
+ * Validate user ID and display user information
+ */
+async function validateUserID(userId) {
+    const validationMessage = document.getElementById('validation-message');
+
+    if (!userId) {
+        validationMessage.textContent = '카테고리 선택 시 책임자, 페이지 선택 시 실무자를 지정하세요';
+        validationMessage.className = 'validation-message';
+        return;
+    }
+
+    try {
+        const response = await authenticatedFetch(`/user/verify?id=${encodeURIComponent(userId)}`);
+
+        if (!response.ok) {
+            validationMessage.textContent = 'ID 검증에 실패했습니다';
+            validationMessage.className = 'validation-message error';
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data && data.exists) {
+            const user = data.user;
+            validationMessage.textContent = `${user.company || '-'} ${user.department || '-'} ${user.name || '-'} ${user.position || '-'} - 올바른 ID입니다.`;
+            validationMessage.className = 'validation-message success';
+        } else {
+            validationMessage.textContent = 'ID를 찾을 수 없습니다';
+            validationMessage.className = 'validation-message error';
+        }
+    } catch (error) {
+        console.error('Error validating user ID:', error);
+        validationMessage.textContent = 'ID 검증에 실패했습니다';
+        validationMessage.className = 'validation-message error';
+    }
 }
 
 /**

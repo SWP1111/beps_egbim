@@ -194,6 +194,16 @@ body {
     font-style: italic;
 }
 
+.validation-message.success {
+    color: #4caf50;
+    font-weight: 500;
+}
+
+.validation-message.error {
+    color: #f44336;
+    font-weight: 500;
+}
+
 .error {
     color: #f44336;
     font-size: 14px;
