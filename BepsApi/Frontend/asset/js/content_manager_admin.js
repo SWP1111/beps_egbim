@@ -406,31 +406,11 @@ function setupEventHandlers() {
         console.log('Name selected, user ID:', selectedUserId);
 
         if (selectedUserId) {
-            // Determine which input to populate based on current selection
-            const categoryId = document.getElementById('category-select').value;
-            const pageId = document.getElementById('page-select').value;
-
-            console.log('Category ID:', categoryId, 'Page ID:', pageId);
-
-            if (pageId) {
-                // If page is selected, populate worker input and clear supervisor
-                console.log('Filling worker-input with:', selectedUserId);
-                document.getElementById('worker-input').value = selectedUserId;
-                document.getElementById('supervisor-input').value = '';
-                validateUserID(selectedUserId);
-            } else if (categoryId) {
-                // If only category is selected, populate supervisor input and clear worker
-                console.log('Filling supervisor-input with:', selectedUserId);
-                document.getElementById('supervisor-input').value = selectedUserId;
-                document.getElementById('worker-input').value = '';
-                validateUserID(selectedUserId);
-            } else {
-                // No selection - could fill both or neither, let's fill both
-                console.log('No category/page selected, filling both inputs');
-                document.getElementById('supervisor-input').value = selectedUserId;
-                document.getElementById('worker-input').value = selectedUserId;
-                validateUserID(selectedUserId);
-            }
+            // Fill both supervisor and worker inputs with the selected user ID
+            console.log('Filling both inputs with:', selectedUserId);
+            document.getElementById('supervisor-input').value = selectedUserId;
+            document.getElementById('worker-input').value = selectedUserId;
+            validateUserID(selectedUserId);
         } else {
             // Clear both inputs when name is deselected
             document.getElementById('supervisor-input').value = '';
