@@ -459,10 +459,14 @@ async function addSupervisor() {
 
         if (response.status === 409) {
             // Conflict - manager already exists, show replacement modal
+            console.log('409 Conflict detected, fetching manager info...');
             const existingManager = await getExistingManager('folder', categoryId);
+            console.log('Existing manager:', existingManager);
             const newManager = await getUserInfo(supervisorId);
+            console.log('New manager:', newManager);
 
             if (existingManager) {
+                console.log('Showing replacement modal...');
                 showReplaceManagerModal(existingManager, newManager, async () => {
                     // User confirmed replacement, update the manager
                     try {

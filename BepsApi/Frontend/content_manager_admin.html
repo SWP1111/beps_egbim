@@ -13,8 +13,12 @@
     <script src="asset/js/env-config.js"></script>
     <script src="asset/js/config.js"></script>
     <script src="asset/js/verifyCookie.js"></script>
-    <script defer src="asset/js/content_manager_admin.js?v=202511110001"></script>
-    <script defer src="asset/js/admin_permission_modal.js?v=202509031537"></script>
+    <script>
+        // Auto-versioning for cache busting - no manual version updates needed
+        const version = new Date().getTime();
+        document.write(`<script defer src="asset/js/content_manager_admin.js?v=${version}"><\/script>`);
+        document.write(`<script defer src="asset/js/admin_permission_modal.js?v=${version}"><\/script>`);
+    </script>
 </head>
 <body>
     <div class="container">
