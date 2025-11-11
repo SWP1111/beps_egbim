@@ -221,10 +221,11 @@ def register_content_manager_routes(api_contents_bp):
     def update_content_manager(manager_id):
         """
         Update an existing content manager entry
-        
+        VERSION: 2025-01-11-BACKEND-FIX
+
         Path parameter:
         - manager_id: ID of the content manager entry to update
-        
+
         Request body:
         - user_id: ID of the user to add as manager
         - type: Type of permission ('channel', 'folder', or 'file')
@@ -232,6 +233,7 @@ def register_content_manager_routes(api_contents_bp):
         - folder_id: ID of the folder (when type is 'folder')
         - channel_id: ID of the channel (when type is 'channel')
         """
+        logger.info(f"PUT /content_manager/{manager_id} - VERSION: 2025-01-11-BACKEND-FIX")
         try:
             # Find the manager entry
             manager = ContentManager.query.get(manager_id)
@@ -239,10 +241,12 @@ def register_content_manager_routes(api_contents_bp):
                 return jsonify({'error': f'Content manager entry with ID {manager_id} not found'}), 404
             
             data = request.json
-            
+
             if not data:
                 return jsonify({'error': 'Request body is required'}), 400
-            
+
+            logger.info(f"Request data: {data}")
+
             # Store original user_id for duplicate checking
             original_assignee_id = manager.assignee_id
             original_type = manager.type
@@ -280,6 +284,7 @@ def register_content_manager_routes(api_contents_bp):
                         return jsonify({'error': f'Folder with ID {folder_id} not found'}), 404
 
                     manager.folder_id = folder_id
+                    logger.info(f"Set manager.folder_id = {manager.folder_id}, manager.type = {manager.type}")
 
                 elif permission_type == 'file' and 'file_id' in data:
                     file_id = int(data['file_id'])
@@ -312,7 +317,9 @@ def register_content_manager_routes(api_contents_bp):
                     position = ('미지정' if not s else next((p for p in prefixes if s.startswith(p)), re.split(r'[\s(/]', s, 1)[0]))
                     assignee = Assignees(user_id=user.id, name=user.name, position=position)
                     db.session.add(assignee)
+                    logger.info(f"BEFORE FLUSH: manager.folder_id={manager.folder_id}, manager.file_id={manager.file_id}, manager.channel_id={manager.channel_id}, manager.type={manager.type}")
                     db.session.flush()  # Flush to get the ID
+                    logger.info(f"AFTER FLUSH: manager.folder_id={manager.folder_id}, manager.file_id={manager.file_id}")
                 user_id = user.id
                 manager.assignee_id = assignee.id
                 assignee_id = assignee.id
