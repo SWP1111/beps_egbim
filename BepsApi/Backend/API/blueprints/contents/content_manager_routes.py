@@ -315,7 +315,6 @@ def register_content_manager_routes(api_contents_bp):
                     raw = user.position
                     s = re.sub(r'\s+', ' ', raw).strip() if raw else ''
                     position = ('미지정' if not s else next((p for p in prefixes if s.startswith(p)), re.split(r'[\s(/]', s, 1)[0]))
-                    assignee = Assignees(user_id=user.id, name=user.name, position=position)
                     db.session.add(assignee)
                     logger.info(f"BEFORE FLUSH: manager.folder_id={manager.folder_id}, manager.file_id={manager.file_id}, manager.channel_id={manager.channel_id}, manager.type={manager.type}")
                     db.session.flush()  # Flush to get the ID
