@@ -477,19 +477,12 @@ async function addSupervisor() {
                 showReplaceManagerModal(existingManager, newManager, contentInfo, async () => {
                     // User confirmed replacement, update the manager
                     try {
-                        // Build update payload based on existing manager's type
+                        // Build update payload - use the categoryId from the current form
                         const updatePayload = {
                             user_id: supervisorId,
-                            type: existingManager.type
+                            type: 'folder',
+                            folder_id: parseInt(categoryId)
                         };
-
-                        if (existingManager.type === 'folder') {
-                            updatePayload.folder_id = existingManager.folder_id;
-                        } else if (existingManager.type === 'file') {
-                            updatePayload.file_id = existingManager.file_id;
-                        } else if (existingManager.type === 'channel') {
-                            updatePayload.channel_id = existingManager.channel_id;
-                        }
 
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
                             method: 'PUT',
@@ -586,19 +579,12 @@ async function addWorker() {
                 showReplaceManagerModal(existingManager, newManager, contentInfo, async () => {
                     // User confirmed replacement, update the manager
                     try {
-                        // Build update payload based on existing manager's type
+                        // Build update payload - use the pageId from the current form
                         const updatePayload = {
                             user_id: workerId,
-                            type: existingManager.type
+                            type: 'file',
+                            file_id: parseInt(pageId)
                         };
-
-                        if (existingManager.type === 'folder') {
-                            updatePayload.folder_id = existingManager.folder_id;
-                        } else if (existingManager.type === 'file') {
-                            updatePayload.file_id = existingManager.file_id;
-                        } else if (existingManager.type === 'channel') {
-                            updatePayload.channel_id = existingManager.channel_id;
-                        }
 
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
                             method: 'PUT',
