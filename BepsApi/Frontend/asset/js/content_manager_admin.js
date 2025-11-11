@@ -1,10 +1,10 @@
 /**
  * Content Manager Admin - Unified Interface
  * Combines content management and manager assignment
- * VERSION: 2025-01-11-FIX-V2
+ * VERSION: 2025-01-11-FINAL
  */
 
-console.log('content_manager_admin.js loaded - VERSION: 2025-01-11-FIX-V2');
+console.log('content_manager_admin.js loaded - VERSION: 2025-01-11-FINAL');
 
 // Global state
 let hierarchyData = null;
@@ -481,17 +481,11 @@ async function addSupervisor() {
                     // User confirmed replacement, update the manager
                     try {
                         // Build update payload - use the categoryId from the current form
-                        console.log('DEBUG: categoryId =', categoryId);
-                        console.log('DEBUG: supervisorId =', supervisorId);
-                        console.log('DEBUG: existingManager.id =', existingManager.id);
-
                         const updatePayload = {
                             user_id: supervisorId,
                             type: 'folder',
                             folder_id: parseInt(categoryId)
                         };
-
-                        console.log('DEBUG: updatePayload =', JSON.stringify(updatePayload, null, 2));
 
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
                             method: 'PUT',

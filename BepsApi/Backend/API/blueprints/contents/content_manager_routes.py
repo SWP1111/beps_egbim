@@ -249,8 +249,54 @@ def register_content_manager_routes(api_contents_bp):
             original_channel_id = manager.channel_id
             original_folder_id = manager.folder_id
             original_file_id = manager.file_id
-            
-            # Update user_id if provided
+
+            # Update type and related IDs FIRST (before any flush)
+            if 'type' in data:
+                permission_type = data['type']
+                manager.type = permission_type
+
+                # Reset all IDs
+                manager.file_id = None
+                manager.folder_id = None
+                manager.channel_id = None
+
+                # Set appropriate ID based on type
+                if permission_type == 'channel' and 'channel_id' in data:
+                    channel_id = int(data['channel_id'])
+
+                    # Verify channel exists
+                    channel = ContentRelChannels.query.filter_by(id=channel_id, is_deleted=False).first()
+                    if not channel:
+                        return jsonify({'error': f'Channel with ID {channel_id} not found'}), 404
+
+                    manager.channel_id = channel_id
+
+                elif permission_type == 'folder' and 'folder_id' in data:
+                    folder_id = int(data['folder_id'])
+
+                    # Verify folder exists
+                    folder = ContentRelFolders.query.filter_by(id=folder_id, is_deleted=False).first()
+                    if not folder:
+                        return jsonify({'error': f'Folder with ID {folder_id} not found'}), 404
+
+                    manager.folder_id = folder_id
+
+                elif permission_type == 'file' and 'file_id' in data:
+                    file_id = int(data['file_id'])
+
+                    # Verify file exists
+                    file = ContentRelPages.query.filter_by(id=file_id, is_deleted=False).first()
+                    if not file:
+                        return jsonify({'error': f'File with ID {file_id} not found'}), 404
+
+                    manager.file_id = file_id
+
+                else:
+                    # Missing required IDs for the selected type
+                    missing_field = 'channel_id' if permission_type == 'channel' else ('folder_id' if permission_type == 'folder' else 'file_id')
+                    return jsonify({'error': f'Required field missing: {missing_field}'}), 400
+
+            # Now update user_id if provided (this might flush)
             if 'user_id' in data:
                 user_id = data['user_id']
                 # Validate user exists with case-insensitive search
@@ -267,114 +313,39 @@ def register_content_manager_routes(api_contents_bp):
                     assignee = Assignees(user_id=user.id, name=user.name, position=position)
                     db.session.add(assignee)
                     db.session.flush()  # Flush to get the ID
-                user_id = user.id                
+                user_id = user.id
                 manager.assignee_id = assignee.id
                 assignee_id = assignee.id
             else:
                 assignee_id = original_assignee_id
-            
-            # Update type and related IDs if provided
-            if 'type' in data:
-                permission_type = data['type']
-                manager.type = permission_type
-                
-                # Reset all IDs
-                manager.file_id = None
-                manager.folder_id = None
-                manager.channel_id = None
-                
-                # Set appropriate ID based on type
-                if permission_type == 'channel' and 'channel_id' in data:
-                    channel_id = int(data['channel_id'])
-                    
-                    # Verify channel exists
-                    channel = ContentRelChannels.query.filter_by(id=channel_id, is_deleted=False).first()
-                    if not channel:
-                        return jsonify({'error': f'Channel with ID {channel_id} not found'}), 404
-                    
-                    # Check for duplicates - only one manager per content allowed, but ignore if it's the same record being updated
-                    duplicate = ContentManager.query.filter_by(
-                        type='channel',
-                        channel_id=channel_id
-                    ).filter(ContentManager.id != manager_id).first()
-                    
-                    if duplicate:
-                        return jsonify({'error': f'This channel already has a manager assigned'}), 409
-                    
-                    manager.channel_id = channel_id
-                
-                elif permission_type == 'folder' and 'folder_id' in data:
-                    folder_id = int(data['folder_id'])
-                    
-                    # Verify folder exists
-                    folder = ContentRelFolders.query.filter_by(id=folder_id, is_deleted=False).first()
-                    if not folder:
-                        return jsonify({'error': f'Folder with ID {folder_id} not found'}), 404
-                    
-                    # Check for duplicates - only one manager per content allowed, but ignore if it's the same record being updated
-                    duplicate = ContentManager.query.filter_by(
-                        type='folder',
-                        folder_id=folder_id
-                    ).filter(ContentManager.id != manager_id).first()
-                    
-                    if duplicate:
-                        return jsonify({'error': f'This folder already has a manager assigned'}), 409
-                    
-                    manager.folder_id = folder_id
-                
-                elif permission_type == 'file' and 'file_id' in data:
-                    file_id = int(data['file_id'])
-                    
-                    # Verify file exists
-                    file = ContentRelPages.query.filter_by(id=file_id, is_deleted=False).first()
-                    if not file:
-                        return jsonify({'error': f'File with ID {file_id} not found'}), 404
-                    
-                    # Check for duplicates - only one manager per content allowed, but ignore if it's the same record being updated
-                    duplicate = ContentManager.query.filter_by(
-                        type='file',
-                        file_id=file_id
-                    ).filter(ContentManager.id != manager_id).first()
-                    
-                    if duplicate:
-                        return jsonify({'error': f'This file already has a manager assigned'}), 409
-                    
-                    manager.file_id = file_id
-                
-                else:
-                    # Missing required IDs for the selected type
-                    missing_field = 'channel_id' if permission_type == 'channel' else ('folder_id' if permission_type == 'folder' else 'file_id')
-                    return jsonify({'error': f'Required field missing: {missing_field}'}), 400
-            else:
-                # Type not being updated, but check for duplicate if user_id is updated
-                if 'user_id' in data:
-                    # Current settings
-                    if manager.type == 'channel' and manager.channel_id:
-                        duplicate = ContentManager.query.filter_by(
-                            type='channel',
-                            channel_id=manager.channel_id
-                        ).filter(ContentManager.id != manager_id).first()
-                        
-                        if duplicate:
-                            return jsonify({'error': f'This channel already has a manager assigned'}), 409
-                    
-                    elif manager.type == 'folder' and manager.folder_id:
-                        duplicate = ContentManager.query.filter_by(
-                            type='folder',
-                            folder_id=manager.folder_id
-                        ).filter(ContentManager.id != manager_id).first()
-                        
-                        if duplicate:
-                            return jsonify({'error': f'This folder already has a manager assigned'}), 409
-                    
-                    elif manager.type == 'file' and manager.file_id:
-                        duplicate = ContentManager.query.filter_by(
-                            type='file',
-                            file_id=manager.file_id
-                        ).filter(ContentManager.id != manager_id).first()
-                        
-                        if duplicate:
-                            return jsonify({'error': f'This file already has a manager assigned'}), 409
+
+            # Check for duplicates after type and IDs are set
+            if manager.type == 'channel' and manager.channel_id:
+                duplicate = ContentManager.query.filter_by(
+                    type='channel',
+                    channel_id=manager.channel_id
+                ).filter(ContentManager.id != manager_id).first()
+
+                if duplicate:
+                    return jsonify({'error': f'This channel already has a manager assigned'}), 409
+
+            elif manager.type == 'folder' and manager.folder_id:
+                duplicate = ContentManager.query.filter_by(
+                    type='folder',
+                    folder_id=manager.folder_id
+                ).filter(ContentManager.id != manager_id).first()
+
+                if duplicate:
+                    return jsonify({'error': f'This folder already has a manager assigned'}), 409
+
+            elif manager.type == 'file' and manager.file_id:
+                duplicate = ContentManager.query.filter_by(
+                    type='file',
+                    file_id=manager.file_id
+                ).filter(ContentManager.id != manager_id).first()
+
+                if duplicate:
+                    return jsonify({'error': f'This file already has a manager assigned'}), 409
             
             # 수정 전 assignee_id가 더이상 사용되지 않으면 테이블에서 행 제거
             should_delete_assignee = False
