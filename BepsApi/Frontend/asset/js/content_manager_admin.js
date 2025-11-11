@@ -465,16 +465,35 @@ async function addSupervisor() {
             const newManager = await getUserInfo(supervisorId);
 
             if (existingManager) {
-                showReplaceManagerModal(existingManager, newManager, async () => {
+                // Get category name from the select element
+                const categorySelect = document.getElementById('category-select');
+                const categoryName = categorySelect.options[categorySelect.selectedIndex]?.text || '알 수 없음';
+
+                const contentInfo = {
+                    managerType: '책임자',
+                    contentName: `카테고리: ${categoryName}`
+                };
+
+                showReplaceManagerModal(existingManager, newManager, contentInfo, async () => {
                     // User confirmed replacement, update the manager
                     try {
+                        // Build update payload based on existing manager's type
+                        const updatePayload = {
+                            user_id: supervisorId,
+                            type: existingManager.type
+                        };
+
+                        if (existingManager.type === 'folder') {
+                            updatePayload.folder_id = existingManager.folder_id;
+                        } else if (existingManager.type === 'file') {
+                            updatePayload.file_id = existingManager.file_id;
+                        } else if (existingManager.type === 'channel') {
+                            updatePayload.channel_id = existingManager.channel_id;
+                        }
+
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
                             method: 'PUT',
-                            body: JSON.stringify({
-                                user_id: supervisorId,
-                                type: 'folder',
-                                folder_id: parseInt(categoryId)
-                            })
+                            body: JSON.stringify(updatePayload)
                         });
 
                         if (!updateResponse.ok) {
@@ -555,16 +574,35 @@ async function addWorker() {
             const newManager = await getUserInfo(workerId);
 
             if (existingManager) {
-                showReplaceManagerModal(existingManager, newManager, async () => {
+                // Get page name from the select element
+                const pageSelect = document.getElementById('page-select');
+                const pageName = pageSelect.options[pageSelect.selectedIndex]?.text || '알 수 없음';
+
+                const contentInfo = {
+                    managerType: '실무자',
+                    contentName: `페이지: ${pageName}`
+                };
+
+                showReplaceManagerModal(existingManager, newManager, contentInfo, async () => {
                     // User confirmed replacement, update the manager
                     try {
+                        // Build update payload based on existing manager's type
+                        const updatePayload = {
+                            user_id: workerId,
+                            type: existingManager.type
+                        };
+
+                        if (existingManager.type === 'folder') {
+                            updatePayload.folder_id = existingManager.folder_id;
+                        } else if (existingManager.type === 'file') {
+                            updatePayload.file_id = existingManager.file_id;
+                        } else if (existingManager.type === 'channel') {
+                            updatePayload.channel_id = existingManager.channel_id;
+                        }
+
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
                             method: 'PUT',
-                            body: JSON.stringify({
-                                user_id: workerId,
-                                type: 'file',
-                                file_id: parseInt(pageId)
-                            })
+                            body: JSON.stringify(updatePayload)
                         });
 
                         if (!updateResponse.ok) {
@@ -1329,7 +1367,11 @@ async function getExistingManager(type, contentId) {
                 id: manager.id,
                 name: manager.assignee.name,
                 position: manager.assignee.position,
-                user_id: manager.assignee.user_id
+                user_id: manager.assignee.user_id,
+                type: manager.type,
+                folder_id: manager.folder_id,
+                file_id: manager.file_id,
+                channel_id: manager.channel_id
             };
         }
 
@@ -1343,9 +1385,13 @@ async function getExistingManager(type, contentId) {
 /**
  * Show replace manager confirmation modal
  */
-function showReplaceManagerModal(existingManager, newManager, onConfirm) {
+function showReplaceManagerModal(existingManager, newManager, contentInfo, onConfirm) {
     const modal = document.getElementById('replace-manager-modal');
     const overlay = document.getElementById('modal-overlay');
+
+    // Fill in content context
+    document.getElementById('manager-type').textContent = contentInfo.managerType || '-';
+    document.getElementById('content-name').textContent = contentInfo.contentName || '-';
 
     // Fill in existing manager info
     document.getElementById('existing-manager-name').textContent = existingManager.name || '-';
