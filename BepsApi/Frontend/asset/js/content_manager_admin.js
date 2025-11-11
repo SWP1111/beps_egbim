@@ -50,6 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 async function initializePage() {
     try {
+        // Ensure modal is hidden on page load
+        const modal = document.getElementById('replace-manager-modal');
+        const overlay = document.getElementById('modal-overlay');
+        if (modal) modal.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
+
         // Load hierarchy data with managers
         await loadHierarchyWithManagers();
 
@@ -1356,8 +1362,8 @@ function showReplaceManagerModal(existingManager, newManager, onConfirm) {
     document.getElementById('new-manager-id').textContent = newManager.user_id || '-';
 
     // Show modal
-    modal.classList.add('show');
-    overlay.classList.add('show');
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
 
     // Setup event handlers
     const yesBtn = document.getElementById('replace-manager-yes-btn');
@@ -1374,8 +1380,8 @@ function showReplaceManagerModal(existingManager, newManager, onConfirm) {
     };
 
     const cleanup = () => {
-        modal.classList.remove('show');
-        overlay.classList.remove('show');
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
         yesBtn.removeEventListener('click', handleYes);
         noBtn.removeEventListener('click', handleNo);
         closeBtn.removeEventListener('click', handleNo);
