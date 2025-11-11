@@ -375,4 +375,4 @@ def register_content_manager_routes(api_contents_bp):
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error updating content manager: {str(e)}")
-            return jsonify({'error': str(e)}), 500 
+            return jsonify({'error': str(e)}), 500
