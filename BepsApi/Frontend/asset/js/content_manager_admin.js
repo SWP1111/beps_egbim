@@ -1296,7 +1296,7 @@ function showError(message) {
  */
 async function getUserInfo(userId) {
     try {
-        const response = await authenticatedFetch(`/user/info?user_id=${encodeURIComponent(userId)}`);
+        const response = await authenticatedFetch(`/user/user_info?id=${encodeURIComponent(userId)}`);
         if (!response.ok) {
             throw new Error('Failed to fetch user info');
         }
