@@ -204,6 +204,8 @@ def can_approve_update(user_id, page_id):
         True if user can approve, False otherwise
     """
     try:
+        if is_developer(user_id):
+            return True
         # Only category managers can approve
         page = ContentRelPages.query.filter_by(id=page_id, is_deleted=False).first()
         if not page:
