@@ -8,6 +8,7 @@ This module handles:
 - R2 image handling
 """
 
+import os
 import logging
 import datetime
 from datetime import timezone
@@ -16,7 +17,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 from models import ContentRelPages, ContentRelPageDetails, Users
 from log_config import get_content_logger
-from .r2_utils import check_r2_object_exists, generate_r2_object_key, generate_r2_signed_url
+from .r2_utils import check_r2_object_exists, generate_r2_object_key, generate_r2_signed_url, get_r2_object_metadata
 from services.r2_storage_service import R2StorageService
 
 # Initialize logger
