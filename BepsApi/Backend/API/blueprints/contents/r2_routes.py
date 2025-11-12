@@ -453,4 +453,242 @@ def register_r2_routes(api_contents_bp):
             
         except Exception as e:
             logger.error(f"Error generating R2 object key preview for file {file_id}: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @api_contents_bp.route('/file/<int:file_id>/versions', methods=['GET'])
+    @jwt_required(locations=['headers','cookies'])
+    def get_file_versions(file_id):
+        """
+        Get list of all versions for a file (current, pending, archived)
+
+        Returns:
+            {
+                'current': {...} or null,
+                'pending': {...} or null,
+                'archived': [{...}, {...}],
+                'total_count': int
+            }
+        """
+        try:
+            from models import PendingContent, ArchivedContent, Users
+            from flask_jwt_extended import get_jwt_identity
+
+            # Check user permissions
+            user_id = get_jwt_identity()
+            user = Users.query.get(user_id)
+
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+
+            # Get the file
+            page = ContentRelPages.query.filter_by(id=file_id, is_deleted=False).first()
+            if not page:
+                return jsonify({'error': 'File not found'}), 404
+
+            # Check if user has access (admin, developer, or has specific access)
+            if user.role_id not in [1, 2, 999]:
+                try:
+                    from services.content_hierarchy_service import ContentHierarchyService
+                    service = ContentHierarchyService()
+                    folder_ids, file_ids = service.get_user_accessible_content(int(user_id))
+
+                    if file_id not in file_ids:
+                        return jsonify({'error': 'Access denied'}), 403
+                except Exception as perm_error:
+                    logger.warning(f"Could not check user permissions for file {file_id}: {str(perm_error)}")
+
+            versions = {
+                'current': None,
+                'pending': None,
+                'archived': [],
+                'total_count': 0
+            }
+
+            # Get current version
+            page_name = page.name or f"file_{file_id}"
+            page_name_without_ext = os.path.splitext(page_name)[0]
+            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+
+            current_object_key = None
+            for ext in image_extensions:
+                test_filename = f"{page_name_without_ext}{ext}"
+                test_object_key = generate_r2_object_key(file_id, test_filename, is_page_detail=False)
+
+                if check_r2_object_exists(test_object_key):
+                    current_object_key = test_object_key
+                    break
+
+            if current_object_key:
+                metadata = get_r2_object_metadata(current_object_key)
+                versions['current'] = {
+                    'type': 'current',
+                    'object_key': current_object_key,
+                    'file_size': metadata.get('size', 0) if metadata else 0,
+                    'last_modified': metadata.get('last_modified').isoformat() if metadata and metadata.get('last_modified') else None,
+                    'filename': os.path.basename(current_object_key)
+                }
+                versions['total_count'] += 1
+
+            # Get pending version
+            pending = PendingContent.query.filter_by(
+                content_type='page',
+                page_id=file_id
+            ).first()
+
+            if pending:
+                uploader = Users.query.get(pending.uploaded_by) if pending.uploaded_by else None
+                versions['pending'] = {
+                    'type': 'pending',
+                    'object_key': pending.object_key,
+                    'file_size': pending.file_size,
+                    'uploaded_at': pending.created_at.isoformat() if pending.created_at else None,
+                    'uploaded_by': uploader.name if uploader else None,
+                    'filename': pending.filename
+                }
+                versions['total_count'] += 1
+
+            # Get archived versions (sorted by created_at DESC - newest first)
+            archived_list = ArchivedContent.query.filter_by(
+                content_type='page',
+                original_page_id=file_id
+            ).order_by(ArchivedContent.created_at.desc()).all()
+
+            for archived in archived_list:
+                archiver = Users.query.get(archived.archived_by) if archived.archived_by else None
+                versions['archived'].append({
+                    'type': 'archived',
+                    'object_key': archived.object_key,
+                    'file_size': archived.file_size,
+                    'archived_at': archived.created_at.isoformat() if archived.created_at else None,
+                    'archived_by': archiver.name if archiver else None,
+                    'filename': archived.archived_filename
+                })
+
+            versions['total_count'] += len(archived_list)
+
+            return jsonify(versions)
+
+        except Exception as e:
+            logger.error(f"Error getting file versions for file {file_id}: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+
+    @api_contents_bp.route('/file/<int:file_id>/version-data', methods=['GET'])
+    @jwt_required(locations=['headers','cookies'])
+    def get_file_version_data(file_id):
+        """
+        Get detailed data for a specific version including signed URL
+
+        Query params:
+            version_type: 'current' | 'pending' | 'archived'
+            object_key: The object key for archived versions
+            expires: Expiration time in seconds (optional, default: 3600)
+
+        Returns:
+            {
+                'version_type': str,
+                'signed_url': str,
+                'metadata': {...}
+            }
+        """
+        try:
+            from models import PendingContent, ArchivedContent, Users
+            from flask_jwt_extended import get_jwt_identity
+
+            version_type = request.args.get('version_type')
+            object_key = request.args.get('object_key')
+            expires = int(request.args.get('expires', 3600))
+
+            if not version_type:
+                return jsonify({'error': 'version_type is required'}), 400
+
+            # Check user permissions
+            user_id = get_jwt_identity()
+            user = Users.query.get(user_id)
+
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+
+            # Get the file
+            page = ContentRelPages.query.filter_by(id=file_id, is_deleted=False).first()
+            if not page:
+                return jsonify({'error': 'File not found'}), 404
+
+            # Check if user has access
+            if user.role_id not in [1, 2, 999]:
+                try:
+                    from services.content_hierarchy_service import ContentHierarchyService
+                    service = ContentHierarchyService()
+                    folder_ids, file_ids = service.get_user_accessible_content(int(user_id))
+
+                    if file_id not in file_ids:
+                        return jsonify({'error': 'Access denied'}), 403
+                except Exception as perm_error:
+                    logger.warning(f"Could not check user permissions for file {file_id}: {str(perm_error)}")
+
+            # Determine object key based on version type
+            if version_type == 'current':
+                page_name = page.name or f"file_{file_id}"
+                page_name_without_ext = os.path.splitext(page_name)[0]
+                image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+
+                object_key = None
+                for ext in image_extensions:
+                    test_filename = f"{page_name_without_ext}{ext}"
+                    test_object_key = generate_r2_object_key(file_id, test_filename, is_page_detail=False)
+
+                    if check_r2_object_exists(test_object_key):
+                        object_key = test_object_key
+                        break
+
+                if not object_key:
+                    return jsonify({'error': 'Current version not found'}), 404
+
+            elif version_type == 'pending':
+                pending = PendingContent.query.filter_by(
+                    content_type='page',
+                    page_id=file_id
+                ).first()
+
+                if not pending:
+                    return jsonify({'error': 'Pending version not found'}), 404
+
+                object_key = pending.object_key
+
+            elif version_type == 'archived':
+                if not object_key:
+                    return jsonify({'error': 'object_key is required for archived versions'}), 400
+
+                # Verify this archived version belongs to this file
+                archived = ArchivedContent.query.filter_by(
+                    content_type='page',
+                    original_page_id=file_id,
+                    object_key=object_key
+                ).first()
+
+                if not archived:
+                    return jsonify({'error': 'Archived version not found'}), 404
+            else:
+                return jsonify({'error': 'Invalid version_type'}), 400
+
+            # Check if object exists in R2
+            if not check_r2_object_exists(object_key):
+                return jsonify({'error': f'{version_type} version file not found in storage'}), 404
+
+            # Get metadata
+            metadata = get_r2_object_metadata(object_key)
+
+            # Generate signed URL
+            signed_url = generate_r2_signed_url(object_key, expires_in=expires, method='GET')
+
+            return jsonify({
+                'version_type': version_type,
+                'signed_url': signed_url,
+                'object_key': object_key,
+                'file_size': metadata.get('size', 0) if metadata else 0,
+                'last_modified': metadata.get('last_modified').isoformat() if metadata and metadata.get('last_modified') else None,
+                'expires_in': expires
+            })
+
+        except Exception as e:
+            logger.error(f"Error getting version data for file {file_id}: {str(e)}", exc_info=True)
             return jsonify({'error': str(e)}), 500 

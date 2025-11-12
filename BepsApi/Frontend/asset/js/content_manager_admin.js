@@ -992,14 +992,9 @@ function createAdditionalFileItem(additional) {
  */
 async function viewPageImage(pageId) {
     try {
-        const response = await authenticatedFetch(`/contents/file/${pageId}/r2-image-url`);
-
-        if (!response.ok) {
-            throw new Error('Failed to get image URL');
-        }
-
-        const data = await response.json();
-        showImageModal(data.signed_url, `Page ${pageId} Image`);
+        // Open content viewer in new window
+        const viewerUrl = `/content_viewer.html?fileId=${pageId}`;
+        window.open(viewerUrl, '_blank', 'width=1200,height=800');
 
     } catch (error) {
         console.error('Error viewing page image:', error);

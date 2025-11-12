@@ -1606,34 +1606,15 @@
         // 이미지 모달 표시 (R2 기반)
         function showImageModal(fileId, fileName) {
             console.log(`이미지 보기: ${fileId}`);
-            
-            // R2 이미지 URL 가져오기
-            authenticatedFetch(`/contents/file/${fileId}/r2-image-url`, {
-                method: 'GET'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`R2 이미지 URL을 가져오는데 실패했습니다: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // 모달 요소 가져오기
-                const modal = document.getElementById('imageModal');
-                const modalImg = document.getElementById('imageModalImg');
-                const modalTitle = document.getElementById('imageModalTitle');
-                
-                // 모달 설정
-                modalTitle.textContent = fileName || '이미지 보기';
-                modalImg.src = data.signed_url;
-                
-                // 모달 표시
-                modal.style.display = 'block';
-            })
-            .catch(error => {
+
+            // Open content viewer in new window
+            try {
+                const viewerUrl = `/content_viewer.html?fileId=${fileId}`;
+                window.open(viewerUrl, '_blank', 'width=1200,height=800');
+            } catch (error) {
                 console.error('이미지를 불러오는 중 오류가 발생했습니다:', error);
                 alert('이미지를 불러오는 중 오류가 발생했습니다.');
-            });
+            }
         }
         
         // 페이지 상세 파일 다운로드

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>컨텐츠 뷰어</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Malgun Gothic', sans-serif;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .viewer-header {
+            background-color: #2a2a2a;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .version-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .version-indicator {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .viewer-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-image {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+        }
+
+        .no-content-message {
+            text-align: center;
+            font-size: 20px;
+            color: #888;
+        }
+
+        .loading-message {
+            text-align: center;
+            font-size: 18px;
+            color: #aaa;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(42, 42, 42, 0.8);
+            border: 1px solid #4a4a4a;
+            color: #fff;
+            font-size: 32px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, opacity 0.2s;
+            z-index: 10;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background-color: rgba(62, 62, 62, 0.9);
+        }
+
+        .nav-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .nav-button.left {
+            left: 20px;
+        }
+
+        .nav-button.right {
+            right: 20px;
+        }
+
+        .metadata-panel {
+            background-color: #2a2a2a;
+            padding: 15px 20px;
+            border-top: 1px solid #3a3a3a;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .metadata-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .metadata-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .metadata-value {
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .error-message {
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+            font-size: 16px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-current {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .status-pending {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .status-archived {
+            background-color: #757575;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewer-header">
+        <div class="version-title" id="versionTitle">컨텐츠 뷰어</div>
+        <div class="version-indicator" id="versionIndicator">-</div>
+    </div>
+
+    <div class="viewer-content">
+        <button class="nav-button left" id="prevBtn" disabled>‹</button>
+        <div id="contentDisplay">
+            <div class="loading-message">불러오는 중...</div>
+        </div>
+        <button class="nav-button right" id="nextBtn" disabled>›</button>
+    </div>
+
+    <div class="metadata-panel" id="metadataPanel">
+        <div class="metadata-item">
+            <div class="metadata-label">파일명</div>
+            <div class="metadata-value" id="metaFilename">-</div>
+        </div>
+        <div class="metadata-item">
+            <div class="metadata-label">파일 크기</div>
+            <div class="metadata-value" id="metaFileSize">-</div>
+        </div>
+        <div class="metadata-item">
+            <div class="metadata-label">등록일</div>
+            <div class="metadata-value" id="metaDate">-</div>
+        </div>
+        <div class="metadata-item">
+            <div class="metadata-label">등록자</div>
+            <div class="metadata-value" id="metaUploader">-</div>
+        </div>
+        <div class="metadata-item">
+            <div class="metadata-label">상태</div>
+            <div class="metadata-value" id="metaStatus">-</div>
+        </div>
+    </div>
+
+    <script src="asset/js/env-config.js"></script>
+    <script>
+        // Get file ID from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileId = urlParams.get('fileId');
+
+        if (!fileId) {
+            document.getElementById('contentDisplay').innerHTML =
+                '<div class="error-message">파일 ID가 제공되지 않았습니다.</div>';
+            throw new Error('No fileId provided');
+        }
+
+        // Get JWT token
+        const userInfo = JSON.parse(sessionStorage.getItem("loggedInUser") || "{}");
+        const jwtToken = userInfo.token;
+
+        if (!jwtToken) {
+            document.getElementById('contentDisplay').innerHTML =
+                '<div class="error-message">인증이 필요합니다.</div>';
+            throw new Error('No JWT token found');
+        }
+
+        // Global state
+        let versionList = [];
+        let currentIndex = 0;
+        let currentVersionData = null;
+
+        // Authenticated fetch helper
+        async function authenticatedFetch(url, options = {}) {
+            const headers = {
+                'Authorization': `Bearer ${jwtToken}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            const fullUrl = url.startsWith('http') ? url : `${window.baseUrl}${url.replace(/^\//, '')}`;
+
+            return fetch(fullUrl, {
+                credentials: 'include',
+                ...options,
+                headers
+            });
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Get version title
+        function getVersionTitle(version) {
+            if (version.type === 'current') {
+                return '현재 버전';
+            } else if (version.type === 'pending') {
+                return '대기 중인 버전';
+            } else if (version.type === 'archived') {
+                const archivedDate = formatDate(version.archived_at);
+                return `이전 버전 (${archivedDate})`;
+            }
+            return '알 수 없는 버전';
+        }
+
+        // Load version list
+        async function loadVersionList() {
+            try {
+                const response = await authenticatedFetch(`/contents/file/${fileId}/versions`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load versions: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Build version list in order: current, pending, archived (newest to oldest)
+                versionList = [];
+
+                if (data.current) {
+                    versionList.push(data.current);
+                }
+
+                if (data.pending) {
+                    versionList.push(data.pending);
+                }
+
+                if (data.archived && data.archived.length > 0) {
+                    versionList.push(...data.archived);
+                }
+
+                if (versionList.length === 0) {
+                    // No versions at all
+                    document.getElementById('contentDisplay').innerHTML =
+                        '<div class="no-content-message">현재 등록된 컨텐츠가 없습니다</div>';
+                    return;
+                }
+
+                // Start at the first version (current if available, otherwise pending)
+                currentIndex = 0;
+                await loadVersionData(currentIndex);
+                updateNavigationButtons();
+
+            } catch (error) {
+                console.error('Error loading version list:', error);
+                document.getElementById('contentDisplay').innerHTML =
+                    `<div class="error-message">버전 목록을 불러오는데 실패했습니다: ${error.message}</div>`;
+            }
+        }
+
+        // Load version data
+        async function loadVersionData(index) {
+            try {
+                if (index < 0 || index >= versionList.length) {
+                    return;
+                }
+
+                document.getElementById('contentDisplay').innerHTML =
+                    '<div class="loading-message">불러오는 중...</div>';
+
+                const version = versionList[index];
+                let url = `/contents/file/${fileId}/version-data?version_type=${version.type}`;
+
+                if (version.type === 'archived') {
+                    url += `&object_key=${encodeURIComponent(version.object_key)}`;
+                }
+
+                const response = await authenticatedFetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load version data: ${response.status}`);
+                }
+
+                currentVersionData = await response.json();
+
+                // Display image
+                displayVersion(currentVersionData, version);
+
+                // Update title and indicator
+                document.getElementById('versionTitle').textContent = getVersionTitle(version);
+                document.getElementById('versionIndicator').textContent =
+                    `${index + 1} / ${versionList.length}`;
+
+                // Update metadata
+                updateMetadata(version, currentVersionData);
+
+            } catch (error) {
+                console.error('Error loading version data:', error);
+                document.getElementById('contentDisplay').innerHTML =
+                    `<div class="error-message">컨텐츠를 불러오는데 실패했습니다: ${error.message}</div>`;
+            }
+        }
+
+        // Display version
+        function displayVersion(versionData, version) {
+            const contentDisplay = document.getElementById('contentDisplay');
+            contentDisplay.innerHTML = `<img src="${versionData.signed_url}" alt="${version.filename}" class="content-image">`;
+        }
+
+        // Update metadata panel
+        function updateMetadata(version, versionData) {
+            document.getElementById('metaFilename').textContent = version.filename || '-';
+            document.getElementById('metaFileSize').textContent = formatFileSize(versionData.file_size);
+
+            // Date and uploader
+            if (version.type === 'current') {
+                document.getElementById('metaDate').textContent = formatDate(versionData.last_modified);
+                document.getElementById('metaUploader').textContent = '-';
+            } else if (version.type === 'pending') {
+                document.getElementById('metaDate').textContent = formatDate(version.uploaded_at);
+                document.getElementById('metaUploader').textContent = version.uploaded_by || '-';
+            } else if (version.type === 'archived') {
+                document.getElementById('metaDate').textContent = formatDate(version.archived_at);
+                document.getElementById('metaUploader').textContent = version.archived_by || '-';
+            }
+
+            // Status badge
+            let statusHtml = '';
+            if (version.type === 'current') {
+                statusHtml = '<span class="status-badge status-current">현재</span>';
+            } else if (version.type === 'pending') {
+                statusHtml = '<span class="status-badge status-pending">대기중</span>';
+            } else if (version.type === 'archived') {
+                statusHtml = '<span class="status-badge status-archived">보관</span>';
+            }
+            document.getElementById('metaStatus').innerHTML = statusHtml;
+        }
+
+        // Update navigation buttons
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === versionList.length - 1;
+        }
+
+        // Navigate to previous version
+        async function navigatePrevious() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                await loadVersionData(currentIndex);
+                updateNavigationButtons();
+            }
+        }
+
+        // Navigate to next version
+        async function navigateNext() {
+            if (currentIndex < versionList.length - 1) {
+                currentIndex++;
+                await loadVersionData(currentIndex);
+                updateNavigationButtons();
+            }
+        }
+
+        // Event listeners
+        document.getElementById('prevBtn').addEventListener('click', navigatePrevious);
+        document.getElementById('nextBtn').addEventListener('click', navigateNext);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                navigatePrevious();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                navigateNext();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                window.close();
+            }
+        });
+
+        // Initialize
+        loadVersionList();
+    </script>
+</body>
+</html>
