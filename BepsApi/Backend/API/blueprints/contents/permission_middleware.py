@@ -113,7 +113,19 @@ def is_category_manager(user_id, category_id):
         logger.error(f"Error checking category manager: {str(e)}")
         return False
 
+def is_developer(user_id):
+    """
+    Check if user has developer role
 
+    Args:
+        user_id: User ID
+        """
+    try:
+        user = Users.query.filter_by(id=user_id, is_deleted=False).first()
+        return user is not None and user.role_id in [1,2,999]
+    except Exception as e:
+        logger.error(f"Error checking developer role: {str(e)}")
+        return False
 def is_page_manager(user_id, page_id):
     """
     Check if user is 실무자 (page manager) for given page
@@ -155,6 +167,8 @@ def can_upload_to_page(user_id, page_id):
         True if user can upload, False otherwise
     """
     try:
+        if is_developer(user_id):
+            return True
         # Check if user is page manager
         if is_page_manager(user_id, page_id):
             return True
