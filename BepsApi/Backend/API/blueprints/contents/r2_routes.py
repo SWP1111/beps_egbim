@@ -73,7 +73,7 @@ def register_r2_routes(api_contents_bp):
                     
                     # Check R2 existence (original logic with fallback)
                     page_name = page.name or f"file_{file_id}"
-                    image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+                    image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
                     
                     logger.debug(f"🔍 Checking file {file_id}: name='{page_name}', object_id='{page.object_id}'")
                     
@@ -176,7 +176,7 @@ def register_r2_routes(api_contents_bp):
             if page:
                 # Derive R2 path from node structure (same approach as r2-image-url)
                 page_name = page.name or f"file_{file_id}"
-                image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+                image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
                 
                 r2_exists = False
                 object_key = None
@@ -211,7 +211,7 @@ def register_r2_routes(api_contents_bp):
                 if detail:
                     # For page details, use similar approach
                     detail_name = detail.name or f"detail_{file_id}"
-                    image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+                    image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
                     
                     r2_exists = False
                     object_key = None
@@ -385,7 +385,7 @@ def register_r2_routes(api_contents_bp):
             page_name = page.name or f"file_{file_id}"
             # Remove existing extension to avoid double extensions
             page_name_without_ext = os.path.splitext(page_name)[0]
-            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
 
             r2_object_key = None
 
@@ -508,7 +508,7 @@ def register_r2_routes(api_contents_bp):
             # Get current version
             page_name = page.name or f"file_{file_id}"
             page_name_without_ext = os.path.splitext(page_name)[0]
-            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
 
             current_object_key = None
             for ext in image_extensions:
@@ -630,7 +630,7 @@ def register_r2_routes(api_contents_bp):
             if version_type == 'current':
                 page_name = page.name or f"file_{file_id}"
                 page_name_without_ext = os.path.splitext(page_name)[0]
-                image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+                image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
 
                 object_key = None
                 for ext in image_extensions:

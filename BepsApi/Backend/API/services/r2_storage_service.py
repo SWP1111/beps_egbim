@@ -144,7 +144,7 @@ class R2StorageService:
             
             # Always derive R2 path from node structure (same approach as r2-image-url endpoint)
             page_name_clean = page_name or f"file_{page_id}"
-            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
+            image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf', '.webm', '.mp4', '.avi', '.mov', '.wmv']
             
             result = False
             
@@ -195,8 +195,8 @@ class R2StorageService:
                 logging.warning(f"🔑 R2 credentials not configured, making intelligent guess for page {page_id}")
                 # When R2 is not available, make intelligent guess based on name pattern and page details
                 name_suggests_content = bool(
-                    page_name and 
-                    (any(page_name.lower().endswith(ext.lower()) for ext in ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp']) or 
+                    page_name and
+                    (any(page_name.lower().endswith(ext.lower()) for ext in ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.webm', '.mp4', '.avi', '.mov', '.wmv']) or
                      any(char.isdigit() for char in page_name) or  # Has numbers (like 002_08.pdf)
                      len(page_name) > 3)  # Not just placeholder names
                 )
@@ -228,7 +228,7 @@ class R2StorageService:
             logging.error(f"❌ Error checking R2 content for page {page_id}: {str(e)}", exc_info=True)
             # Fallback to intelligent guess based on name
             if page_name:
-                return any(page_name.lower().endswith(ext.lower()) for ext in ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp'])
+                return any(page_name.lower().endswith(ext.lower()) for ext in ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.webm', '.mp4', '.avi', '.mov', '.wmv'])
             return False
     
     @staticmethod
