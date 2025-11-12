@@ -542,17 +542,17 @@ def register_r2_routes(api_contents_bp):
                     'type': 'pending',
                     'object_key': pending.object_key,
                     'file_size': pending.file_size,
-                    'uploaded_at': pending.created_at.isoformat() if pending.created_at else None,
+                    'uploaded_at': pending.uploaded_at.isoformat() if pending.uploaded_at else None,
                     'uploaded_by': uploader.name if uploader else None,
                     'filename': pending.filename
                 }
                 versions['total_count'] += 1
 
-            # Get archived versions (sorted by created_at DESC - newest first)
+            # Get archived versions (sorted by archived_at DESC - newest first)
             archived_list = ArchivedContent.query.filter_by(
                 content_type='page',
                 original_page_id=file_id
-            ).order_by(ArchivedContent.created_at.desc()).all()
+            ).order_by(ArchivedContent.archived_at.desc()).all()
 
             for archived in archived_list:
                 archiver = Users.query.get(archived.archived_by) if archived.archived_by else None
@@ -560,7 +560,7 @@ def register_r2_routes(api_contents_bp):
                     'type': 'archived',
                     'object_key': archived.object_key,
                     'file_size': archived.file_size,
-                    'archived_at': archived.created_at.isoformat() if archived.created_at else None,
+                    'archived_at': archived.archived_at.isoformat() if archived.archived_at else None,
                     'archived_by': archiver.name if archiver else None,
                     'filename': archived.archived_filename
                 })
