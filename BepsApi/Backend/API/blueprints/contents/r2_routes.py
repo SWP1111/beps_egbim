@@ -380,16 +380,19 @@ def register_r2_routes(api_contents_bp):
             
             # Check if R2 file exists (using the same approach as original)
             # First try to find the R2 object using standard extensions
+            import os
             page_name = page.name or f"file_{file_id}"
+            # Remove existing extension to avoid double extensions
+            page_name_without_ext = os.path.splitext(page_name)[0]
             image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf']
-            
+
             r2_object_key = None
-            
+
             # Try multiple extensions to find the actual file
             for ext in image_extensions:
-                test_filename = f"{page_name}{ext}"
+                test_filename = f"{page_name_without_ext}{ext}"
                 test_object_key = generate_r2_object_key(file_id, test_filename, is_page_detail=False)
-                
+
                 if check_r2_object_exists(test_object_key):
                     r2_object_key = test_object_key
                     break
