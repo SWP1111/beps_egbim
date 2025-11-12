@@ -480,11 +480,9 @@ async function addSupervisor() {
                 showReplaceManagerModal(existingManager, newManager, contentInfo, async () => {
                     // User confirmed replacement, update the manager
                     try {
-                        // Build update payload - use the categoryId from the current form
+                        // Build update payload - only send user_id (matching old implementation)
                         const updatePayload = {
-                            user_id: supervisorId,
-                            type: 'folder',
-                            folder_id: parseInt(categoryId)
+                            user_id: supervisorId
                         };
 
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
@@ -582,11 +580,9 @@ async function addWorker() {
                 showReplaceManagerModal(existingManager, newManager, contentInfo, async () => {
                     // User confirmed replacement, update the manager
                     try {
-                        // Build update payload - use the pageId from the current form
+                        // Build update payload - only send user_id (matching old implementation)
                         const updatePayload = {
-                            user_id: workerId,
-                            type: 'file',
-                            file_id: parseInt(pageId)
+                            user_id: workerId
                         };
 
                         const updateResponse = await authenticatedFetch(`/contents/content_manager/${existingManager.id}`, {
