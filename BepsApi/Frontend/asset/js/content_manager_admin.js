@@ -992,7 +992,7 @@ function createAdditionalFileItem(additional) {
  */
 async function viewPageImage(pageId) {
     try {
-        const response = await authenticatedFetch(`/contents/page/${pageId}/image-url`);
+        const response = await authenticatedFetch(`/contents/file/${pageId}/r2-image-url`);
 
         if (!response.ok) {
             throw new Error('Failed to get image URL');
