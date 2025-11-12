@@ -731,8 +731,8 @@ function createTableRow(channel, category, page, isFirstChannelRow, channelRowSp
     pageCell.className = 'page-cell-wrapper';
 
     if (page) {
-        // Remove file extension from page name
-        const pageName = page.name.replace(/\.(png|jpg|jpeg|gif|bmp|svg)$/i, '');
+        // Remove file extension from page name (images, videos, PDFs)
+        const pageName = page.name.replace(/\.(png|jpg|jpeg|gif|bmp|svg|webm|mp4|avi|mov|wmv|pdf|webp)$/i, '');
 
         const nameSpan = document.createElement('span');
         nameSpan.textContent = pageName;
@@ -831,12 +831,22 @@ async function toggleAdditionalContent(pageId, arrowElement, row) {
         // Page image section
         const imageSection = document.createElement('div');
         imageSection.className = 'page-image-section';
-        // Remove double extension - page.name already has extension
-        const pageFileName = page.name.replace(/\.(png|jpg|jpeg|gif|bmp|svg)$/i, '') + '.png';
+        // Use page.name as-is if it has an extension, otherwise add .png
+        const hasExtension = /\.(png|jpg|jpeg|gif|bmp|svg|webm|mp4|avi|mov|wmv|pdf|webp)$/i.test(page.name);
+        const pageFileName = hasExtension ? page.name : page.name + '.png';
+
+        // Determine icon based on file extension
+        let fileIcon = '🖼️'; // default: image
+        if (/\.(webm|mp4|avi|mov|wmv)$/i.test(pageFileName)) {
+            fileIcon = '🎬'; // video
+        } else if (/\.pdf$/i.test(pageFileName)) {
+            fileIcon = '📄'; // PDF
+        }
+
         imageSection.innerHTML = `
             <div class="page-image-item">
                 <div class="page-image-info">
-                    <span class="page-image-icon">🖼️</span>
+                    <span class="page-image-icon">${fileIcon}</span>
                     <span class="page-image-name">${pageFileName}</span>
                     <span class="pending-badge" id="page-pending-${page.id}" style="display: ${page.has_pending ? 'inline-block' : 'none'}">대기중</span>
                 </div>
@@ -1008,7 +1018,7 @@ async function viewPageImage(pageId) {
 async function uploadPageToPending(pageId) {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = '.png';
+    fileInput.accept = '.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.webm,.mp4,.avi,.mov,.wmv,.pdf';
 
     fileInput.onchange = async function() {
         if (!fileInput.files || fileInput.files.length === 0) return;

@@ -69,10 +69,12 @@ def register_pending_approve_routes(api_contents_bp):
             if file.filename == '':
                 return jsonify({'error': 'No file selected'}), 400
 
-            # Validate file extension (must be .png for pages)
+            # Validate file extension (images, videos, PDFs)
             _, file_ext = os.path.splitext(file.filename)
-            if file_ext.lower() != '.png':
-                return jsonify({'error': 'Page image must be .png format'}), 400
+            allowed_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg',
+                                '.webm', '.mp4', '.avi', '.mov', '.wmv', '.pdf']
+            if file_ext.lower() not in allowed_extensions:
+                return jsonify({'error': f'Invalid file format. Allowed: {", ".join(allowed_extensions)}'}), 400
 
             # Generate R2 object key for original location
             from .r2_utils import generate_r2_object_key
@@ -93,15 +95,33 @@ def register_pending_approve_routes(api_contents_bp):
             MAX_PAGE_SIZE = 100 * 1024 * 1024  # 100 MB
             if file_size > MAX_PAGE_SIZE:
                 return jsonify({
-                    'error': f'Page image must be under 100MB. Current size: {file_size / 1024 / 1024:.2f}MB'
+                    'error': f'Page content must be under 100MB. Current size: {file_size / 1024 / 1024:.2f}MB'
                 }), 413
+
+            # Determine content type
+            content_type_map = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp',
+                '.bmp': 'image/bmp',
+                '.svg': 'image/svg+xml',
+                '.webm': 'video/webm',
+                '.mp4': 'video/mp4',
+                '.avi': 'video/x-msvideo',
+                '.mov': 'video/quicktime',
+                '.wmv': 'video/x-ms-wmv',
+                '.pdf': 'application/pdf'
+            }
+            content_type = content_type_map.get(file_ext.lower(), 'application/octet-stream')
 
             # Upload to pending
             r2_client.put_object(
                 Bucket=bucket_name,
                 Key=pending_object_key,
                 Body=file_data,
-                ContentType='image/png'
+                ContentType=content_type
             )
 
             logger.info(f"Uploaded page to pending: {pending_object_key}")

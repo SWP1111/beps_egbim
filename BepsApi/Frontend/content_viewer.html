@@ -66,6 +66,17 @@
             object-fit: contain;
         }
 
+        .content-video {
+            max-width: 95%;
+            max-height: 95%;
+        }
+
+        .content-pdf {
+            width: 95%;
+            height: 95%;
+            border: none;
+        }
+
         .no-content-message {
             position: absolute;
             top: 50%;
@@ -387,14 +398,83 @@
             }
         }
 
+        // Get file extension
+        function getFileExtension(filename) {
+            const match = filename.match(/\.([^.]+)$/);
+            return match ? match[1].toLowerCase() : '';
+        }
+
+        // Get content type from filename
+        function getContentType(filename) {
+            const ext = getFileExtension(filename);
+
+            // Video formats
+            if (['webm', 'mp4', 'avi', 'mov', 'wmv'].includes(ext)) {
+                return 'video';
+            }
+
+            // PDF
+            if (ext === 'pdf') {
+                return 'pdf';
+            }
+
+            // Default to image
+            return 'image';
+        }
+
+        // Get video MIME type
+        function getVideoMimeType(filename) {
+            const ext = getFileExtension(filename);
+            const mimeTypes = {
+                'webm': 'video/webm',
+                'mp4': 'video/mp4',
+                'avi': 'video/x-msvideo',
+                'mov': 'video/quicktime',
+                'wmv': 'video/x-ms-wmv'
+            };
+            return mimeTypes[ext] || 'video/mp4';
+        }
+
         // Display version
         function displayVersion(versionData, version) {
             const contentDisplay = document.getElementById('contentDisplay');
-            contentDisplay.innerHTML = `
-                <div class="image-container">
-                    <img src="${versionData.signed_url}" alt="${version.filename}" class="content-image">
-                </div>
-            `;
+            const contentType = getContentType(version.filename);
+
+            let html = '<div class="image-container">';
+
+            if (contentType === 'video') {
+                const mimeType = getVideoMimeType(version.filename);
+                html += `
+                    <video src="${versionData.signed_url}"
+                           class="content-video"
+                           controls
+                           autoplay
+                           loop>
+                        <source src="${versionData.signed_url}" type="${mimeType}">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } else if (contentType === 'pdf') {
+                html += `
+                    <iframe src="${versionData.signed_url}"
+                            class="content-pdf"
+                            type="application/pdf">
+                        <p>Your browser does not support PDFs.
+                           <a href="${versionData.signed_url}" target="_blank">Download the PDF</a>
+                        </p>
+                    </iframe>
+                `;
+            } else {
+                // Default: image
+                html += `
+                    <img src="${versionData.signed_url}"
+                         alt="${version.filename}"
+                         class="content-image">
+                `;
+            }
+
+            html += '</div>';
+            contentDisplay.innerHTML = html;
         }
 
         // Update metadata panel
