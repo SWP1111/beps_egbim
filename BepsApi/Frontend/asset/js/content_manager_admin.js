@@ -966,6 +966,12 @@ function createAdditionalFileItem(additional) {
     const actions = document.createElement('div');
     actions.className = 'file-actions';
 
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'icon-btn view-btn';
+    viewBtn.textContent = '보기';
+    viewBtn.onclick = () => viewAdditional(additional.id);
+    actions.appendChild(viewBtn);
+
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'icon-btn view-btn';
     downloadBtn.textContent = '다운로드';
@@ -1209,25 +1215,56 @@ async function approveAdditionalUpdate(additionalId) {
 }
 
 /**
+ * View additional content in new window
+ */
+async function viewAdditional(additionalId) {
+    try {
+        const response = await authenticatedFetch(`/contents/additional/${additionalId}`);
+
+        if (!response.ok) {
+            throw new Error('Failed to get content URL');
+        }
+
+        const data = await response.json();
+
+        if (!data.download_url) {
+            throw new Error('No content available to view');
+        }
+
+        // Open content in new window
+        window.open(data.download_url, '_blank', 'width=1200,height=800');
+
+    } catch (error) {
+        console.error('Error viewing additional content:', error);
+        alert('보기 실패');
+    }
+}
+
+/**
  * Download additional content
  */
 async function downloadAdditional(additionalId) {
     try {
-        const response = await authenticatedFetch(`/contents/additional/${additionalId}/download`);
+        const response = await authenticatedFetch(`/contents/additional/${additionalId}`);
 
         if (!response.ok) {
-            throw new Error('Download failed');
+            throw new Error('Failed to get download URL');
         }
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+        const data = await response.json();
+
+        if (!data.download_url) {
+            throw new Error('No content available for download');
+        }
+
+        // Use the signed URL to download
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `additional_${additionalId}`;
+        a.href = data.download_url;
+        a.download = data.filename || `additional_${additionalId}`;
+        a.target = '_blank';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
 
     } catch (error) {
         console.error('Error downloading additional content:', error);
@@ -1502,5 +1539,6 @@ window.approvePageUpdate = approvePageUpdate;
 window.addAdditionalContent = addAdditionalContent;
 window.uploadAdditionalToPending = uploadAdditionalToPending;
 window.approveAdditionalUpdate = approveAdditionalUpdate;
+window.viewAdditional = viewAdditional;
 window.downloadAdditional = downloadAdditional;
 window.deleteAdditional = deleteAdditional;

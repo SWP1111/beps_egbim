@@ -15,7 +15,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from extensions import db
-from models import PageAdditionals, ContentRelPages, PendingContent
+from models import ContentRelPageDetails, ContentRelPages, PendingContent
 from .permission_middleware import require_upload_permission, get_current_user
 from .r2_utils import (
     get_r2_client,
@@ -60,21 +60,37 @@ def register_additional_content_routes(api_contents_bp):
                 return jsonify({'error': 'Page not found'}), 404
 
             # Get all additional content for this page
-            additionals = PageAdditionals.query.filter_by(
+            additionals = ContentRelPageDetails.query.filter_by(
                 page_id=page_id,
                 is_deleted=False
-            ).order_by(PageAdditionals.content_number).all()
+            ).order_by(ContentRelPageDetails.created_at).all()
 
             result = []
             for additional in additionals:
                 # Check if has pending content
-                has_pending = PendingContent.query.filter_by(
+                pending = PendingContent.query.filter_by(
                     content_type='additional',
                     additional_id=additional.id
-                ).first() is not None
+                ).first()
 
                 additional_data = additional.to_dict()
-                additional_data['has_pending'] = has_pending
+                additional_data['has_pending'] = pending is not None
+                # Include file extension from name
+                _, ext = os.path.splitext(additional.name)
+                additional_data['file_extension'] = ext
+                additional_data['filename'] = additional.name
+
+                # Get file size from pending or R2 metadata
+                file_size = 0
+                if pending:
+                    file_size = pending.file_size
+                elif additional.object_id and check_r2_object_exists(additional.object_id):
+                    from .r2_utils import get_r2_object_metadata
+                    metadata = get_r2_object_metadata(additional.object_id)
+                    if metadata:
+                        file_size = metadata.get('size', 0)
+
+                additional_data['file_size'] = file_size
 
                 result.append(additional_data)
 
@@ -137,15 +153,19 @@ def register_additional_content_routes(api_contents_bp):
 
             page_prefix = page_name_match.group(1)
 
-            # Get next content number
-            max_number_result = db.session.query(
-                db.func.max(PageAdditionals.content_number)
-            ).filter_by(page_id=page_id, is_deleted=False).scalar()
+            # Get next content number by counting existing details
+            existing_count = ContentRelPageDetails.query.filter_by(
+                page_id=page_id,
+                is_deleted=False
+            ).count()
 
-            next_number = (max_number_result or 0) + 1
+            next_number = existing_count + 1
 
             # Generate new filename
             new_filename = f"{page_prefix}_{next_number:02d}{file_ext_lower}"
+
+            # Store original filename
+            original_filename = file.filename
 
             # Generate R2 object key (in original location first, will move to pending)
             # Path: beps-contents/{channel}/{category}/{page}/{filename}
@@ -182,14 +202,12 @@ def register_additional_content_routes(api_contents_bp):
 
             logger.info(f"Uploaded additional content to pending: {pending_object_key}")
 
-            # Create PageAdditionals record
-            additional = PageAdditionals(
+            # Create ContentRelPageDetails record
+            additional = ContentRelPageDetails(
                 page_id=page_id,
-                filename=new_filename,
-                object_key=object_key,  # Store original location (not pending)
-                file_extension=file_ext_lower,
-                content_number=next_number,
-                file_size=file_size
+                name=new_filename,
+                description=original_filename,  # Store original filename in description
+                object_id=object_key  # Store original location (not pending)
             )
             db.session.add(additional)
             db.session.flush()  # Get ID
@@ -233,7 +251,7 @@ def register_additional_content_routes(api_contents_bp):
         """
         try:
             # Get additional content
-            additional = PageAdditionals.query.filter_by(
+            additional = ContentRelPageDetails.query.filter_by(
                 id=additional_id,
                 is_deleted=False
             ).first()
@@ -253,8 +271,8 @@ def register_additional_content_routes(api_contents_bp):
                 }), 403
 
             # Delete from R2 (original location)
-            if additional.object_key:
-                delete_r2_object(additional.object_key)
+            if additional.object_id:
+                delete_r2_object(additional.object_id)
 
             # Delete pending if exists
             pending = PendingContent.query.filter_by(
@@ -291,7 +309,7 @@ def register_additional_content_routes(api_contents_bp):
             Additional content info including pending status and signed URL
         """
         try:
-            additional = PageAdditionals.query.filter_by(
+            additional = ContentRelPageDetails.query.filter_by(
                 id=additional_id,
                 is_deleted=False
             ).first()
@@ -307,14 +325,39 @@ def register_additional_content_routes(api_contents_bp):
 
             result = additional.to_dict()
             result['has_pending'] = pending is not None
+            # Add filename and extension for compatibility
+            result['filename'] = additional.name
+            _, ext = os.path.splitext(additional.name)
+            result['file_extension'] = ext
 
             if pending:
                 result['pending'] = pending.to_dict()
 
-            # Generate signed URL for download (if exists in R2)
-            if check_r2_object_exists(additional.object_key):
+            # Generate signed URL for download and get file size
+            # Priority: pending content (if exists) > original content
+            download_key = None
+            file_size = 0
+
+            if pending and check_r2_object_exists(pending.object_key):
+                # Pending content exists, use it
+                download_key = pending.object_key
+                file_size = pending.file_size
+                result['is_pending'] = True
+            elif check_r2_object_exists(additional.object_id):
+                # Original content exists
+                download_key = additional.object_id
+                result['is_pending'] = False
+                # Get file size from R2 metadata
+                from .r2_utils import get_r2_object_metadata
+                metadata = get_r2_object_metadata(additional.object_id)
+                if metadata:
+                    file_size = metadata.get('size', 0)
+
+            result['file_size'] = file_size
+
+            if download_key:
                 result['download_url'] = generate_r2_signed_url(
-                    additional.object_key,
+                    download_key,
                     expires_in=3600,
                     method='GET'
                 )

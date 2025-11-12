@@ -699,7 +699,7 @@ class PendingContent(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content_type = db.Column(db.String(20), nullable=False)  # 'page' or 'additional'
     page_id = db.Column(db.Integer, db.ForeignKey('content_rel_pages.id'), nullable=False)
-    additional_id = db.Column(db.Integer, db.ForeignKey('page_additionals.id'), nullable=True)
+    additional_id = db.Column(db.Integer, db.ForeignKey('content_rel_page_details.id'), nullable=True)  # References page_details
     object_key = db.Column(db.String(500), nullable=False)  # R2 path in pending location
     filename = db.Column(db.String(255), nullable=False)
     file_size = db.Column(db.BigInteger, default=0)
@@ -708,7 +708,7 @@ class PendingContent(db.Model):
 
     # Relationships
     page = db.relationship('ContentRelPages', backref=db.backref('pending_contents', lazy=True))
-    additional = db.relationship('PageAdditionals', backref=db.backref('pending_contents', lazy=True))
+    detail = db.relationship('ContentRelPageDetails', foreign_keys=[additional_id], backref=db.backref('pending_contents', lazy=True))
     uploader = db.relationship('Users', backref=db.backref('uploaded_pending_contents', lazy=True))
 
     __table_args__ = (
@@ -738,7 +738,7 @@ class ArchivedContent(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content_type = db.Column(db.String(20), nullable=False)  # 'page' or 'additional'
     original_page_id = db.Column(db.Integer, db.ForeignKey('content_rel_pages.id'), nullable=False)
-    original_additional_id = db.Column(db.Integer, db.ForeignKey('page_additionals.id'), nullable=True)
+    original_additional_id = db.Column(db.Integer, db.ForeignKey('content_rel_page_details.id'), nullable=True)  # References page_details
     object_key = db.Column(db.String(500), nullable=False)  # R2 path in archive/old
     archived_filename = db.Column(db.String(255), nullable=False)  # With timestamp suffix
     file_size = db.Column(db.BigInteger, default=0)
@@ -747,7 +747,7 @@ class ArchivedContent(db.Model):
 
     # Relationships
     original_page = db.relationship('ContentRelPages', backref=db.backref('archived_contents', lazy=True))
-    original_additional = db.relationship('PageAdditionals', backref=db.backref('archived_contents', lazy=True))
+    original_detail = db.relationship('ContentRelPageDetails', foreign_keys=[original_additional_id], backref=db.backref('archived_contents', lazy=True))
     archiver = db.relationship('Users', backref=db.backref('archived_by_user', lazy=True))
 
     __table_args__ = (
