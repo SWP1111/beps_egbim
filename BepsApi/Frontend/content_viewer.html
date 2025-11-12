@@ -49,6 +49,17 @@
             overflow: hidden;
         }
 
+        .image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .content-image {
             max-width: 95%;
             max-height: 95%;
@@ -56,15 +67,34 @@
         }
 
         .no-content-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
             font-size: 20px;
             color: #888;
         }
 
         .loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
             font-size: 18px;
             color: #aaa;
+        }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+            font-size: 16px;
         }
 
         .nav-button {
@@ -127,13 +157,6 @@
         .metadata-value {
             font-size: 14px;
             color: #fff;
-        }
-
-        .error-message {
-            color: #f44336;
-            text-align: center;
-            padding: 20px;
-            font-size: 16px;
         }
 
         .status-badge {
@@ -367,7 +390,11 @@
         // Display version
         function displayVersion(versionData, version) {
             const contentDisplay = document.getElementById('contentDisplay');
-            contentDisplay.innerHTML = `<img src="${versionData.signed_url}" alt="${version.filename}" class="content-image">`;
+            contentDisplay.innerHTML = `
+                <div class="image-container">
+                    <img src="${versionData.signed_url}" alt="${version.filename}" class="content-image">
+                </div>
+            `;
         }
 
         // Update metadata panel
