@@ -40,11 +40,14 @@ def init_scheduler(app):
         logging.error(f"DB 연결 오류: {str(e)}, {traceback.format_exc()}")
         return None
     
-def create_app():    
+def create_app():
     # Flask 애플리케이션 생성
     app = Flask(__name__)
     # Config 클래스를 사용하여 환경 변수 설정
     app.config.from_object(Config)
+    # No global limit - we'll enforce limits per endpoint
+    # Pages: 100MB, Additional content: No limit
+    app.config['MAX_CONTENT_LENGTH'] = None
     # JWT 초기화
     jwt.init_app(app)   
     # DB 초기화

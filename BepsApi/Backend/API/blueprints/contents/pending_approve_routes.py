@@ -89,6 +89,13 @@ def register_pending_approve_routes(api_contents_bp):
             file_data = file.read()
             file_size = len(file_data)
 
+            # Validate file size for pages (100MB limit)
+            MAX_PAGE_SIZE = 100 * 1024 * 1024  # 100 MB
+            if file_size > MAX_PAGE_SIZE:
+                return jsonify({
+                    'error': f'Page image must be under 100MB. Current size: {file_size / 1024 / 1024:.2f}MB'
+                }), 413
+
             # Upload to pending
             r2_client.put_object(
                 Bucket=bucket_name,
