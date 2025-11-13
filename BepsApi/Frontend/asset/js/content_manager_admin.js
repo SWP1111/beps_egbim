@@ -1218,6 +1218,9 @@ async function approveAdditionalUpdate(additionalId) {
  * View additional content in new window
  */
 async function viewAdditional(additionalId) {
+    // Show loading cursor
+    document.body.style.cursor = 'wait';
+
     try {
         const response = await authenticatedFetch(`/contents/additional/${additionalId}`);
 
@@ -1237,6 +1240,9 @@ async function viewAdditional(additionalId) {
     } catch (error) {
         console.error('Error viewing additional content:', error);
         alert('보기 실패');
+    } finally {
+        // Restore cursor
+        document.body.style.cursor = 'default';
     }
 }
 

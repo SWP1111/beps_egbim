@@ -81,30 +81,10 @@ def register_additional_content_routes(api_contents_bp):
                 additional_data['file_extension'] = ext
                 additional_data['filename'] = additional.name
 
-                # Get file size from pending or R2 metadata
+                # Get file size from pending only (skip R2 check for performance)
                 file_size = 0
                 if pending:
                     file_size = pending.file_size
-                    logger.info(f"Additional {additional.id}: Using pending file_size = {file_size}")
-                else:
-                    # Always construct path from hierarchy (object_id is not used)
-                    try:
-                        from .r2_utils import generate_r2_object_key
-                        object_key_to_check = generate_r2_object_key(
-                            additional.id,
-                            additional.name,
-                            is_page_detail=True
-                        )
-
-                        if check_r2_object_exists(object_key_to_check):
-                            metadata = get_r2_object_metadata(object_key_to_check)
-                            if metadata:
-                                file_size = metadata.get('size', 0)
-                                logger.info(f"Additional {additional.id}: Using R2 metadata file_size = {file_size}")
-                        else:
-                            logger.debug(f"Additional {additional.id}: Content not found in R2")
-                    except Exception as e:
-                        logger.error(f"Additional {additional.id}: Failed to construct path: {str(e)}")
 
                 additional_data['file_size'] = file_size
 

@@ -315,10 +315,10 @@ def generate_pending_path(original_path):
     """
     # Replace the base prefix
     if original_path.startswith('beps-contents/'):
-        return original_path.replace('beps-contents/', 'beps-content-archive/pending/', 1)
+        return original_path.replace('beps-contents/', 'beps-archive/pending/', 1)
     else:
         # Fallback: add pending prefix
-        return f'beps-content-archive/pending/{original_path}'
+        return f'beps-archive/pending/{original_path}'
 
 
 def generate_archived_path(original_path, timestamp_suffix):
@@ -326,7 +326,7 @@ def generate_archived_path(original_path, timestamp_suffix):
     Generate archived content path from original path
 
     Original: beps-contents/{channel}/{category}/{page}.png
-    Archived: beps-content-archive/old/{channel}/{category}/{page}__{timestamp}.png
+    Archived: beps-archive/old/{channel}/{category}/{page}__{timestamp}.png
 
     Args:
         original_path: Original R2 object key
@@ -349,9 +349,9 @@ def generate_archived_path(original_path, timestamp_suffix):
 
     # Replace base prefix and reconstruct path
     if dirname.startswith('beps-contents/'):
-        archived_dirname = dirname.replace('beps-contents/', 'beps-content-archive/old/', 1)
+        archived_dirname = dirname.replace('beps-contents/', 'beps-archive/old/', 1)
     else:
-        archived_dirname = f'beps-content-archive/old/{dirname}'
+        archived_dirname = f'beps-archive/old/{dirname}'
 
     return f"{archived_dirname}/{archived_filename}"
 
