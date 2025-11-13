@@ -80,6 +80,13 @@ def get_app_logger():
     """일반 앱 로깅을 위한 기본 로거 반환"""
     return root_logger
 
+# 🔹 Suppress verbose third-party library logs
+# Disable botocore and boto3 debug logs
+logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger('boto3').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('s3transfer').setLevel(logging.WARNING)
+
 # 🚀 로그 설정 완료
 logging.info("🚀 Gunicorn 멀티프로세스 + **안전한 크기별 로그 (300MB)** 설정 완료.")
 logging.info("📁 로그 파일들: app.log, content.log, memo.log")
