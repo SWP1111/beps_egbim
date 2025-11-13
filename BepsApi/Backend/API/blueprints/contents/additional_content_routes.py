@@ -22,7 +22,8 @@ from .r2_utils import (
     generate_pending_path,
     check_r2_object_exists,
     delete_r2_object,
-    generate_r2_signed_url
+    generate_r2_signed_url,
+    get_r2_object_metadata
 )
 from log_config import get_content_logger
 from flask import current_app
@@ -84,11 +85,15 @@ def register_additional_content_routes(api_contents_bp):
                 file_size = 0
                 if pending:
                     file_size = pending.file_size
-                elif additional.object_id and check_r2_object_exists(additional.object_id):
-                    from .r2_utils import get_r2_object_metadata
-                    metadata = get_r2_object_metadata(additional.object_id)
-                    if metadata:
-                        file_size = metadata.get('size', 0)
+                    logger.info(f"Additional {additional.id}: Using pending file_size = {file_size}")
+                elif additional.object_id:
+                    if check_r2_object_exists(additional.object_id):
+                        metadata = get_r2_object_metadata(additional.object_id)
+                        if metadata:
+                            file_size = metadata.get('size', 0)
+                            logger.info(f"Additional {additional.id}: Using R2 metadata file_size = {file_size}")
+                    else:
+                        logger.warning(f"Additional {additional.id}: object_id {additional.object_id} does not exist in R2")
 
                 additional_data['file_size'] = file_size
 
@@ -338,20 +343,32 @@ def register_additional_content_routes(api_contents_bp):
             download_key = None
             file_size = 0
 
-            if pending and check_r2_object_exists(pending.object_key):
-                # Pending content exists, use it
-                download_key = pending.object_key
-                file_size = pending.file_size
-                result['is_pending'] = True
-            elif check_r2_object_exists(additional.object_id):
-                # Original content exists
-                download_key = additional.object_id
-                result['is_pending'] = False
-                # Get file size from R2 metadata
-                from .r2_utils import get_r2_object_metadata
-                metadata = get_r2_object_metadata(additional.object_id)
-                if metadata:
-                    file_size = metadata.get('size', 0)
+            logger.info(f"Getting details for additional {additional_id}: object_id={additional.object_id}, has_pending={pending is not None}")
+
+            if pending:
+                logger.info(f"Pending exists: object_key={pending.object_key}")
+                if check_r2_object_exists(pending.object_key):
+                    # Pending content exists, use it
+                    download_key = pending.object_key
+                    file_size = pending.file_size
+                    result['is_pending'] = True
+                    logger.info(f"Using pending content: key={download_key}, size={file_size}")
+                else:
+                    logger.warning(f"Pending object_key {pending.object_key} does not exist in R2")
+
+            if not download_key and additional.object_id:
+                logger.info(f"Checking original object_id: {additional.object_id}")
+                if check_r2_object_exists(additional.object_id):
+                    # Original content exists
+                    download_key = additional.object_id
+                    result['is_pending'] = False
+                    # Get file size from R2 metadata
+                    metadata = get_r2_object_metadata(additional.object_id)
+                    if metadata:
+                        file_size = metadata.get('size', 0)
+                    logger.info(f"Using original content: key={download_key}, size={file_size}")
+                else:
+                    logger.warning(f"Original object_id {additional.object_id} does not exist in R2")
 
             result['file_size'] = file_size
 
@@ -361,6 +378,9 @@ def register_additional_content_routes(api_contents_bp):
                     expires_in=3600,
                     method='GET'
                 )
+                logger.info(f"Generated download_url for additional {additional_id}")
+            else:
+                logger.error(f"No valid download_key found for additional {additional_id}")
 
             return jsonify(result)
 
