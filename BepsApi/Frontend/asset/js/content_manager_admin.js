@@ -805,6 +805,18 @@ async function toggleAdditionalContent(pageId, arrowElement, row) {
         arrowElement.classList.remove('expanded');
         existingContainer.remove();
     } else {
+        // Close any other expanded containers first
+        const allExpandedRows = document.querySelectorAll('.content-table tbody tr.expanded');
+        allExpandedRows.forEach(expandedRow => {
+            if (expandedRow !== row) {
+                const wrapper = expandedRow.querySelector('.additional-content-wrapper');
+                const arrow = expandedRow.querySelector('.expand-arrow');
+                if (wrapper) wrapper.remove();
+                if (arrow) arrow.classList.remove('expanded');
+                expandedRow.classList.remove('expanded');
+            }
+        });
+
         // Expand
         row.classList.add('expanded');
         arrowElement.classList.add('expanded');
