@@ -86,28 +86,25 @@ def register_additional_content_routes(api_contents_bp):
                 if pending:
                     file_size = pending.file_size
                     logger.info(f"Additional {additional.id}: Using pending file_size = {file_size}")
-                elif additional.object_id:
-                    # Handle old format: if object_id is just a hash (no slashes), construct proper path
-                    object_key_to_check = additional.object_id
-                    if '/' not in object_key_to_check:
-                        # Old format: construct proper path
-                        try:
-                            from .r2_utils import generate_r2_object_key
-                            object_key_to_check = generate_r2_object_key(
-                                additional.id,
-                                additional.name,
-                                is_page_detail=True
-                            )
-                        except Exception:
-                            pass
+                else:
+                    # Always construct path from hierarchy (object_id is not used)
+                    try:
+                        from .r2_utils import generate_r2_object_key
+                        object_key_to_check = generate_r2_object_key(
+                            additional.id,
+                            additional.name,
+                            is_page_detail=True
+                        )
 
-                    if check_r2_object_exists(object_key_to_check):
-                        metadata = get_r2_object_metadata(object_key_to_check)
-                        if metadata:
-                            file_size = metadata.get('size', 0)
-                            logger.info(f"Additional {additional.id}: Using R2 metadata file_size = {file_size}")
-                    else:
-                        logger.warning(f"Additional {additional.id}: object_id {object_key_to_check} does not exist in R2")
+                        if check_r2_object_exists(object_key_to_check):
+                            metadata = get_r2_object_metadata(object_key_to_check)
+                            if metadata:
+                                file_size = metadata.get('size', 0)
+                                logger.info(f"Additional {additional.id}: Using R2 metadata file_size = {file_size}")
+                        else:
+                            logger.debug(f"Additional {additional.id}: Content not found in R2")
+                    except Exception as e:
+                        logger.error(f"Additional {additional.id}: Failed to construct path: {str(e)}")
 
                 additional_data['file_size'] = file_size
 
@@ -226,7 +223,7 @@ def register_additional_content_routes(api_contents_bp):
                 page_id=page_id,
                 name=new_filename,
                 description=original_filename,  # Store original filename in description
-                object_id=object_key  # Store original location (not pending)
+                object_id=None  # Path is always derived from hierarchy, not stored
             )
             db.session.add(additional)
             db.session.flush()  # Get ID
@@ -370,39 +367,31 @@ def register_additional_content_routes(api_contents_bp):
                 else:
                     logger.warning(f"Pending object_key {pending.object_key} does not exist in R2")
 
-            if not download_key and additional.object_id:
-                # Handle old format: if object_id is just a hash (no slashes), construct proper path
-                object_key_to_check = additional.object_id
+            if not download_key:
+                # Always construct path from hierarchy (object_id is not used)
+                from .r2_utils import generate_r2_object_key
+                try:
+                    # Generate the proper path for this detail from page hierarchy
+                    object_key_to_check = generate_r2_object_key(
+                        additional_id,
+                        additional.name,
+                        is_page_detail=True
+                    )
+                    logger.info(f"Constructed path from hierarchy: {object_key_to_check}")
 
-                if '/' not in object_key_to_check:
-                    # Old format: hash only, need to construct full path
-                    logger.info(f"Old format object_id detected (hash only): {object_key_to_check}")
-                    # Try to construct proper path using page detail convention
-                    from .r2_utils import generate_r2_object_key
-                    try:
-                        # Generate the proper path for this detail
-                        object_key_to_check = generate_r2_object_key(
-                            additional_id,
-                            additional.name,
-                            is_page_detail=True
-                        )
-                        logger.info(f"Constructed proper path: {object_key_to_check}")
-                    except Exception as e:
-                        logger.error(f"Failed to construct path: {str(e)}")
-                        object_key_to_check = additional.object_id
-
-                logger.info(f"Checking original object_id: {object_key_to_check}")
-                if check_r2_object_exists(object_key_to_check):
-                    # Original content exists
-                    download_key = object_key_to_check
-                    result['is_pending'] = False
-                    # Get file size from R2 metadata
-                    metadata = get_r2_object_metadata(object_key_to_check)
-                    if metadata:
-                        file_size = metadata.get('size', 0)
-                    logger.info(f"Using original content: key={download_key}, size={file_size}")
-                else:
-                    logger.warning(f"Original object_id {object_key_to_check} does not exist in R2")
+                    if check_r2_object_exists(object_key_to_check):
+                        # Original content exists
+                        download_key = object_key_to_check
+                        result['is_pending'] = False
+                        # Get file size from R2 metadata
+                        metadata = get_r2_object_metadata(object_key_to_check)
+                        if metadata:
+                            file_size = metadata.get('size', 0)
+                        logger.info(f"Using original content: key={download_key}, size={file_size}")
+                    else:
+                        logger.warning(f"Content does not exist in R2: {object_key_to_check}")
+                except Exception as e:
+                    logger.error(f"Failed to construct path from hierarchy: {str(e)}")
 
             result['file_size'] = file_size
 
