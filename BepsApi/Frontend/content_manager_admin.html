@@ -363,6 +363,31 @@
             </div>
         </div>
 
+        <!-- File Naming Modal -->
+        <div id="file-naming-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>파일 이름 입력</h2>
+                    <button class="modal-close" id="file-naming-close-btn">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="modal-message">파일 이름을 입력해 주세요</p>
+                    <div class="naming-input-group">
+                        <span id="filename-prefix" class="filename-prefix"></span>
+                        <input type="text" id="filename-input" class="filename-input" placeholder="파일 이름">
+                        <span id="filename-suffix" class="filename-suffix"></span>
+                    </div>
+                    <div id="naming-error" class="error-message" style="display: none;"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="file-naming-confirm-btn" class="confirm-btn">확인</button>
+                    <button id="file-naming-cancel-btn" class="cancel-btn">취소</button>
+                </div>
+            </div>
+        </div>
+
         <div id="modal-overlay" class="modal-overlay"></div>
     </div>
 </body>

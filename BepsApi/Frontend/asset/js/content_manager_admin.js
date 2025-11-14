@@ -992,7 +992,7 @@ function createAdditionalFileItem(additional) {
 
     const uploadBtn = document.createElement('button');
     uploadBtn.className = 'icon-btn upload-btn';
-    uploadBtn.textContent = '업로드';
+    uploadBtn.textContent = '수정';
     uploadBtn.onclick = () => uploadAdditionalToPending(additional.id);
     actions.appendChild(uploadBtn);
 
@@ -1034,6 +1034,12 @@ async function viewPageImage(pageId) {
  * Upload page to pending
  */
 async function uploadPageToPending(pageId) {
+    const page = getPageById(pageId);
+    if (!page) {
+        alert('페이지 정보를 찾을 수 없습니다.');
+        return;
+    }
+
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.webm,.mp4,.avi,.mov,.wmv,.pdf';
@@ -1042,35 +1048,49 @@ async function uploadPageToPending(pageId) {
         if (!fileInput.files || fileInput.files.length === 0) return;
 
         const file = fileInput.files[0];
+        const fileExt = file.name.substring(file.name.lastIndexOf('.'));
 
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
+        // Show naming modal - user types filename without extension
+        showFileNamingModal(
+            '',              // No prefix for page content
+            fileExt,         // File extension as suffix
+            page.name.replace(/\.[^/.]+$/, ''),  // Current page name without extension
+            async (customName) => {
+                const fullFilename = `${customName}${fileExt}`;
 
-            const response = await authenticatedFetch(`/contents/page/${pageId}/upload-pending`, {
-                method: 'POST',
-                body: formData
-            });
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    // Note: Backend currently uses page.name and doesn't accept custom names
+                    // To use custom filename, backend needs to be modified
+                    formData.append('custom_filename', fullFilename);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Upload failed');
+                    const response = await authenticatedFetch(`/contents/page/${pageId}/upload-pending`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Upload failed');
+                    }
+
+                    alert('페이지가 대기 상태로 업로드되었습니다.');
+
+                    // Update UI
+                    document.getElementById(`page-pending-${pageId}`).style.display = 'inline-block';
+                    document.getElementById(`approve-page-${pageId}`).style.display = 'inline-block';
+
+                    // Reload data
+                    await loadHierarchyWithManagers();
+                    await loadContentTable();
+
+                } catch (error) {
+                    console.error('Error uploading page:', error);
+                    alert(error.message);
+                }
             }
-
-            alert('페이지가 대기 상태로 업로드되었습니다.');
-
-            // Update UI
-            document.getElementById(`page-pending-${pageId}`).style.display = 'inline-block';
-            document.getElementById(`approve-page-${pageId}`).style.display = 'inline-block';
-
-            // Reload data
-            await loadHierarchyWithManagers();
-            await loadContentTable();
-
-        } catch (error) {
-            console.error('Error uploading page:', error);
-            alert(error.message);
-        }
+        );
     };
 
     fileInput.click();
@@ -1114,6 +1134,13 @@ async function approvePageUpdate(pageId) {
  * Add additional content to page
  */
 async function addAdditionalContent(pageId) {
+    // Get page info to determine prefix
+    const page = getPageById(pageId);
+    if (!page) {
+        alert('페이지 정보를 찾을 수 없습니다.');
+        return;
+    }
+
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.pdf,.mp4,.webm,.mov,.avi,.wmv';
@@ -1123,29 +1150,53 @@ async function addAdditionalContent(pageId) {
 
         const file = fileInput.files[0];
 
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await authenticatedFetch(`/contents/page/${pageId}/additional`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to add additional content');
-            }
-
-            alert('추가 컨텐츠가 추가되었습니다.');
-
-            // Reload additional content list
-            await loadAdditionalContent(pageId);
-
-        } catch (error) {
-            console.error('Error adding additional content:', error);
-            alert(error.message);
+        // Extract page prefix (e.g., "001" from "001_PageName.png")
+        const pageNameMatch = page.name.match(/^(\d{3})_/);
+        if (!pageNameMatch) {
+            alert('페이지 이름이 올바른 형식이 아닙니다. (3자리 숫자_이름 형식 필요)');
+            return;
         }
+
+        const pagePrefix = pageNameMatch[1];
+        const fileExt = file.name.substring(file.name.lastIndexOf('.'));
+
+        // Show naming modal with prefix fixed
+        showFileNamingModal(
+            `${pagePrefix}_`,  // Prefix (e.g., "001_")
+            fileExt,            // Suffix (e.g., ".pdf")
+            '파일 이름 (숫자만)',  // Placeholder
+            async (customSuffix) => {
+                // User entered the part after underscore
+                const fullFilename = `${pagePrefix}_${customSuffix}${fileExt}`;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    // Note: Backend currently auto-generates filenames and doesn't use custom names
+                    // To use custom filename, backend needs to be modified to accept it
+                    formData.append('custom_filename', fullFilename);
+
+                    const response = await authenticatedFetch(`/contents/page/${pageId}/additional`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to add additional content');
+                    }
+
+                    alert('추가 컨텐츠가 추가되었습니다.');
+
+                    // Reload additional content list
+                    await loadAdditionalContent(pageId);
+
+                } catch (error) {
+                    console.error('Error adding additional content:', error);
+                    alert(error.message);
+                }
+            }
+        );
     };
 
     fileInput.click();
@@ -1548,6 +1599,85 @@ function getCurrentPageId() {
         return parseInt(id);
     }
     return null;
+}
+
+/**
+ * Show file naming modal
+ * @param {string} prefix - Prefix to show (e.g., "001_" for additional content, empty for page content)
+ * @param {string} suffix - Suffix to show (e.g., ".pdf" for file extension)
+ * @param {string} placeholder - Placeholder text for input
+ * @param {function} onConfirm - Callback function with the entered filename
+ */
+function showFileNamingModal(prefix, suffix, placeholder, onConfirm) {
+    const modal = document.getElementById('file-naming-modal');
+    const overlay = document.getElementById('modal-overlay');
+    const prefixSpan = document.getElementById('filename-prefix');
+    const suffixSpan = document.getElementById('filename-suffix');
+    const input = document.getElementById('filename-input');
+    const errorDiv = document.getElementById('naming-error');
+    const confirmBtn = document.getElementById('file-naming-confirm-btn');
+    const cancelBtn = document.getElementById('file-naming-cancel-btn');
+    const closeBtn = document.getElementById('file-naming-close-btn');
+
+    // Set modal content
+    prefixSpan.textContent = prefix || '';
+    suffixSpan.textContent = suffix || '';
+    input.value = '';
+    input.placeholder = placeholder || '파일 이름';
+    errorDiv.style.display = 'none';
+
+    // Show modal
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+    input.focus();
+
+    // Event handlers
+    const handleConfirm = () => {
+        const filename = input.value.trim();
+
+        if (!filename) {
+            errorDiv.textContent = '파일 이름을 입력해주세요.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Validate filename (no special characters except underscore and hyphen)
+        const invalidChars = /[<>:"/\\|?*]/g;
+        if (invalidChars.test(filename)) {
+            errorDiv.textContent = '파일 이름에 특수문자를 사용할 수 없습니다.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        cleanup();
+        onConfirm(filename);
+    };
+
+    const handleCancel = () => {
+        cleanup();
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleConfirm();
+        } else if (e.key === 'Escape') {
+            handleCancel();
+        }
+    };
+
+    const cleanup = () => {
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        input.removeEventListener('keypress', handleKeyPress);
+    };
+
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
+    closeBtn.addEventListener('click', handleCancel);
+    input.addEventListener('keypress', handleKeyPress);
 }
 
 // Make functions globally accessible
