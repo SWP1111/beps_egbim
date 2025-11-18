@@ -797,21 +797,25 @@ function createTableRow(channel, category, page, isFirstChannelRow, channelRowSp
  * Toggle additional content visibility
  */
 async function toggleAdditionalContent(pageId, arrowElement, row) {
-    const existingContainer = row.querySelector('.additional-content-wrapper');
+    // Check if there's already an expanded row after this one
+    const nextRow = row.nextElementSibling;
+    const existingExpandedRow = nextRow && nextRow.classList.contains('additional-content-row') ? nextRow : null;
 
-    if (existingContainer) {
-        // Collapse
+    if (existingExpandedRow) {
+        // Collapse - remove the expanded row
         row.classList.remove('expanded');
         arrowElement.classList.remove('expanded');
-        existingContainer.remove();
+        existingExpandedRow.remove();
     } else {
         // Close any other expanded containers first
         const allExpandedRows = document.querySelectorAll('.content-table tbody tr.expanded');
         allExpandedRows.forEach(expandedRow => {
             if (expandedRow !== row) {
-                const wrapper = expandedRow.querySelector('.additional-content-wrapper');
+                const expandedContentRow = expandedRow.nextElementSibling;
+                if (expandedContentRow && expandedContentRow.classList.contains('additional-content-row')) {
+                    expandedContentRow.remove();
+                }
                 const arrow = expandedRow.querySelector('.expand-arrow');
-                if (wrapper) wrapper.remove();
                 if (arrow) arrow.classList.remove('expanded');
                 expandedRow.classList.remove('expanded');
             }
@@ -825,10 +829,16 @@ async function toggleAdditionalContent(pageId, arrowElement, row) {
         const page = getPageById(pageId);
         if (!page) return;
 
-        // Create wrapper that spans all columns
-        const wrapper = document.createElement('div');
-        wrapper.className = 'additional-content-wrapper';
-        wrapper.id = `additional-content-${pageId}`;
+        // Create a new table row to hold the expanded content
+        const expandedRow = document.createElement('tr');
+        expandedRow.className = 'additional-content-row';
+        expandedRow.id = `additional-content-${pageId}`;
+
+        // Create a single cell that spans all columns
+        const cell = document.createElement('td');
+        cell.colSpan = 9; // Total number of columns in the table
+        cell.style.padding = '0';
+        cell.style.border = 'none';
 
         // Create container for the expanded content
         const container = document.createElement('div');
@@ -886,10 +896,12 @@ async function toggleAdditionalContent(pageId, arrowElement, row) {
         `;
         container.appendChild(filesSection);
 
-        wrapper.appendChild(container);
+        // Add container to cell, cell to row
+        cell.appendChild(container);
+        expandedRow.appendChild(cell);
 
-        // Insert the wrapper at the end of the row
-        row.appendChild(wrapper);
+        // Insert the new row after the current row
+        row.parentNode.insertBefore(expandedRow, row.nextSibling);
 
         // Load additional content
         await loadAdditionalContent(pageId);
@@ -1592,8 +1604,8 @@ function formatFileSize(bytes) {
 }
 
 function getCurrentPageId() {
-    // Helper to get current page ID from expanded row
-    const expandedRows = document.querySelectorAll('.additional-content-row.expanded');
+    // Helper to get current page ID from expanded additional content row
+    const expandedRows = document.querySelectorAll('.additional-content-row');
     if (expandedRows.length > 0) {
         const id = expandedRows[0].id.replace('additional-content-', '');
         return parseInt(id);
