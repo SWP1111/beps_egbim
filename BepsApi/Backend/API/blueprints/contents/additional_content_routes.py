@@ -15,7 +15,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from extensions import db
-from models import ContentRelPageDetails, ContentRelPages, PendingContent
+from models import ContentRelPageDetails, ContentRelPages, PendingContent, PageAdditionals
 from .permission_middleware import require_upload_permission, get_current_user
 from .r2_utils import (
     get_r2_client,
@@ -61,10 +61,10 @@ def register_additional_content_routes(api_contents_bp):
                 return jsonify({'error': 'Page not found'}), 404
 
             # Get all additional content for this page
-            additionals = ContentRelPageDetails.query.filter_by(
+            additionals = PageAdditionals.query.filter_by(
                 page_id=page_id,
                 is_deleted=False
-            ).order_by(ContentRelPageDetails.created_at).all()
+            ).order_by(PageAdditionals.created_at).all()
 
             result = []
             for additional in additionals:
@@ -76,16 +76,9 @@ def register_additional_content_routes(api_contents_bp):
 
                 additional_data = additional.to_dict()
                 additional_data['has_pending'] = pending is not None
-                # Include file extension from name
-                _, ext = os.path.splitext(additional.name)
-                additional_data['file_extension'] = ext
-                additional_data['filename'] = additional.name
 
-                # Get file size from pending only (skip R2 check for performance)
-                file_size = 0
-                if pending:
-                    file_size = pending.file_size
-
+                # Get file size - use pending if available, otherwise use stored file_size
+                file_size = pending.file_size if pending else additional.file_size
                 additional_data['file_size'] = file_size
 
                 result.append(additional_data)
@@ -149,8 +142,8 @@ def register_additional_content_routes(api_contents_bp):
 
             page_prefix = page_name_match.group(1)
 
-            # Get next content number by counting existing details
-            existing_count = ContentRelPageDetails.query.filter_by(
+            # Get next content number by counting existing additionals
+            existing_count = PageAdditionals.query.filter_by(
                 page_id=page_id,
                 is_deleted=False
             ).count()
@@ -198,12 +191,14 @@ def register_additional_content_routes(api_contents_bp):
 
             logger.info(f"Uploaded additional content to pending: {pending_object_key}")
 
-            # Create ContentRelPageDetails record
-            additional = ContentRelPageDetails(
+            # Create PageAdditionals record
+            additional = PageAdditionals(
                 page_id=page_id,
-                name=new_filename,
-                description=original_filename,  # Store original filename in description
-                object_id=None  # Path is always derived from hierarchy, not stored
+                filename=new_filename,
+                object_key=object_key,  # Store the final object key (not pending)
+                file_extension=file_ext_lower,
+                content_number=next_number,
+                file_size=file_size
             )
             db.session.add(additional)
             db.session.flush()  # Get ID
@@ -247,7 +242,7 @@ def register_additional_content_routes(api_contents_bp):
         """
         try:
             # Get additional content
-            additional = ContentRelPageDetails.query.filter_by(
+            additional = PageAdditionals.query.filter_by(
                 id=additional_id,
                 is_deleted=False
             ).first()
@@ -267,8 +262,8 @@ def register_additional_content_routes(api_contents_bp):
                 }), 403
 
             # Delete from R2 (original location)
-            if additional.object_id:
-                delete_r2_object(additional.object_id)
+            if additional.object_key:
+                delete_r2_object(additional.object_key)
 
             # Delete pending if exists
             pending = PendingContent.query.filter_by(
@@ -305,7 +300,7 @@ def register_additional_content_routes(api_contents_bp):
             Additional content info including pending status and signed URL
         """
         try:
-            additional = ContentRelPageDetails.query.filter_by(
+            additional = PageAdditionals.query.filter_by(
                 id=additional_id,
                 is_deleted=False
             ).first()
@@ -321,10 +316,6 @@ def register_additional_content_routes(api_contents_bp):
 
             result = additional.to_dict()
             result['has_pending'] = pending is not None
-            # Add filename and extension for compatibility
-            result['filename'] = additional.name
-            _, ext = os.path.splitext(additional.name)
-            result['file_extension'] = ext
 
             if pending:
                 result['pending'] = pending.to_dict()
@@ -334,7 +325,7 @@ def register_additional_content_routes(api_contents_bp):
             download_key = None
             file_size = 0
 
-            logger.info(f"Getting details for additional {additional_id}: object_id={additional.object_id}, has_pending={pending is not None}")
+            logger.info(f"Getting details for additional {additional_id}: object_key={additional.object_key}, has_pending={pending is not None}")
 
             if pending:
                 logger.info(f"Pending exists: object_key={pending.object_key}")
@@ -348,30 +339,15 @@ def register_additional_content_routes(api_contents_bp):
                     logger.warning(f"Pending object_key {pending.object_key} does not exist in R2")
 
             if not download_key:
-                # Always construct path from hierarchy (object_id is not used)
-                from .r2_utils import generate_r2_object_key
-                try:
-                    # Generate the proper path for this detail from page hierarchy
-                    object_key_to_check = generate_r2_object_key(
-                        additional_id,
-                        additional.name,
-                        is_page_detail=True
-                    )
-                    logger.info(f"Constructed path from hierarchy: {object_key_to_check}")
-
-                    if check_r2_object_exists(object_key_to_check):
-                        # Original content exists
-                        download_key = object_key_to_check
-                        result['is_pending'] = False
-                        # Get file size from R2 metadata
-                        metadata = get_r2_object_metadata(object_key_to_check)
-                        if metadata:
-                            file_size = metadata.get('size', 0)
-                        logger.info(f"Using original content: key={download_key}, size={file_size}")
-                    else:
-                        logger.warning(f"Content does not exist in R2: {object_key_to_check}")
-                except Exception as e:
-                    logger.error(f"Failed to construct path from hierarchy: {str(e)}")
+                # Use the stored object_key from PageAdditionals
+                if additional.object_key and check_r2_object_exists(additional.object_key):
+                    # Original content exists
+                    download_key = additional.object_key
+                    file_size = additional.file_size
+                    result['is_pending'] = False
+                    logger.info(f"Using original content: key={download_key}, size={file_size}")
+                else:
+                    logger.warning(f"Content does not exist in R2: {additional.object_key}")
 
             result['file_size'] = file_size
 

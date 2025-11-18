@@ -16,7 +16,7 @@ from flask_jwt_extended import jwt_required
 from extensions import db
 from models import (
     ContentRelPages, ContentRelPageDetails, PendingContent,
-    ArchivedContent
+    ArchivedContent, PageAdditionals
 )
 from .permission_middleware import (
     require_upload_permission,
@@ -169,7 +169,7 @@ def register_pending_approve_routes(api_contents_bp):
         """
         try:
             # Get additional content
-            additional = ContentRelPageDetails.query.filter_by(
+            additional = PageAdditionals.query.filter_by(
                 id=additional_id,
                 is_deleted=False
             ).first()
@@ -196,14 +196,13 @@ def register_pending_approve_routes(api_contents_bp):
 
             # Validate file extension matches
             _, file_ext = os.path.splitext(file.filename)
-            _, original_ext = os.path.splitext(additional.name)
-            if file_ext.lower() != original_ext.lower():
+            if file_ext.lower() != additional.file_extension.lower():
                 return jsonify({
-                    'error': f'File extension must match original: {original_ext}'
+                    'error': f'File extension must match original: {additional.file_extension}'
                 }), 400
 
             # Generate pending path
-            pending_object_key = generate_pending_path(additional.object_id)
+            pending_object_key = generate_pending_path(additional.object_key)
 
             # Upload to R2 pending location
             r2_client = get_r2_client()
@@ -238,7 +237,7 @@ def register_pending_approve_routes(api_contents_bp):
                 page_id=additional.page_id,
                 additional_id=additional_id,
                 object_key=pending_object_key,
-                filename=additional.name,
+                filename=additional.filename,
                 file_size=file_size,
                 uploaded_by=user.id
             )
@@ -402,7 +401,7 @@ def register_pending_approve_routes(api_contents_bp):
         """
         try:
             # Get additional content
-            additional = ContentRelPageDetails.query.filter_by(
+            additional = PageAdditionals.query.filter_by(
                 id=additional_id,
                 is_deleted=False
             ).first()
@@ -432,16 +431,18 @@ def register_pending_approve_routes(api_contents_bp):
             timestamp = datetime.now().strftime('%Y%m%d%H%M')
 
             # Check if original exists
-            original_object_key = additional.object_id
+            original_object_key = additional.object_key
             original_exists = check_r2_object_exists(original_object_key)
 
             archived_object_key = None
             file_size = 0
 
             if original_exists:
-                # Get original file metadata
-                original_metadata = get_r2_object_metadata(original_object_key)
-                file_size = original_metadata['size'] if original_metadata else 0
+                # Get original file metadata (use stored size first, fallback to R2)
+                file_size = additional.file_size
+                if not file_size:
+                    original_metadata = get_r2_object_metadata(original_object_key)
+                    file_size = original_metadata['size'] if original_metadata else 0
 
                 # Generate archived path
                 archived_object_key = generate_archived_path(original_object_key, timestamp)
@@ -467,6 +468,9 @@ def register_pending_approve_routes(api_contents_bp):
             move_r2_object(pending.object_key, original_object_key)
 
             logger.info(f"Moved pending to original: {pending.object_key} -> {original_object_key}")
+
+            # Update PageAdditionals with new file size from pending
+            additional.file_size = pending.file_size
 
             # Delete pending record
             db.session.delete(pending)
