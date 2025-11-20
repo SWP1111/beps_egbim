@@ -1010,10 +1010,9 @@ function uploadWithProgress(url, formData, onProgress) {
         // Open and send request
         xhr.open('POST', url);
 
-        // Add auth token
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        // Add auth token from sessionStorage (same as authenticatedFetch)
+        if (jwtToken) {
+            xhr.setRequestHeader('Authorization', `Bearer ${jwtToken}`);
         }
 
         xhr.send(formData);
