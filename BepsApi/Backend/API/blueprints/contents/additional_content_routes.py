@@ -191,38 +191,49 @@ def register_additional_content_routes(api_contents_bp):
 
             logger.info(f"Uploaded additional content to pending: {pending_object_key}")
 
-            # Create PageAdditionals record
-            additional = PageAdditionals(
-                page_id=page_id,
-                filename=new_filename,
-                object_key=object_key,  # Store the final object key (not pending)
-                file_extension=file_ext_lower,
-                content_number=next_number,
-                file_size=file_size
-            )
-            db.session.add(additional)
-            db.session.flush()  # Get ID
+            try:
+                # Create PageAdditionals record
+                additional = PageAdditionals(
+                    page_id=page_id,
+                    filename=new_filename,
+                    object_key=object_key,  # Store the final object key (not pending)
+                    file_extension=file_ext_lower,
+                    content_number=next_number,
+                    file_size=file_size
+                )
+                db.session.add(additional)
+                db.session.flush()  # Get ID
 
-            # Create PendingContent record
-            user = get_current_user()
-            pending = PendingContent(
-                content_type='additional',
-                page_id=page_id,
-                additional_id=additional.id,
-                object_key=pending_object_key,
-                filename=new_filename,
-                file_size=file_size,
-                uploaded_by=user.id
-            )
-            db.session.add(pending)
+                # Create PendingContent record
+                user = get_current_user()
+                pending = PendingContent(
+                    content_type='additional',
+                    page_id=page_id,
+                    additional_id=additional.id,
+                    object_key=pending_object_key,
+                    filename=new_filename,
+                    file_size=file_size,
+                    uploaded_by=user.id
+                )
+                db.session.add(pending)
 
-            db.session.commit()
+                db.session.commit()
 
-            return jsonify({
-                'message': 'Additional content uploaded to pending successfully',
-                'additional': additional.to_dict(),
-                'pending': pending.to_dict()
-            }), 201
+                return jsonify({
+                    'message': 'Additional content uploaded to pending successfully',
+                    'additional': additional.to_dict(),
+                    'pending': pending.to_dict()
+                }), 201
+
+            except Exception as db_error:
+                db.session.rollback()
+                # Clean up the uploaded file from R2 since DB insert failed
+                try:
+                    delete_r2_object(pending_object_key)
+                    logger.warning(f"Cleaned up orphaned R2 file: {pending_object_key}")
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup R2 file after DB error: {str(cleanup_error)}")
+                raise db_error
 
         except Exception as e:
             db.session.rollback()
