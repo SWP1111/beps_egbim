@@ -699,7 +699,7 @@ class PendingContent(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content_type = db.Column(db.String(20), nullable=False)  # 'page' or 'additional'
     page_id = db.Column(db.Integer, db.ForeignKey('content_rel_pages.id'), nullable=False)
-    additional_id = db.Column(db.Integer, db.ForeignKey('content_rel_page_details.id'), nullable=True)  # References page_details
+    additional_id = db.Column(db.Integer, db.ForeignKey('content_rel_page_details.id'), nullable=True)  # References content_rel_page_details
     object_key = db.Column(db.String(500), nullable=False)  # R2 path in pending location
     filename = db.Column(db.String(255), nullable=False)
     file_size = db.Column(db.BigInteger, default=0)
@@ -738,7 +738,7 @@ class ArchivedContent(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content_type = db.Column(db.String(20), nullable=False)  # 'page' or 'additional'
     original_page_id = db.Column(db.Integer, db.ForeignKey('content_rel_pages.id'), nullable=False)
-    original_additional_id = db.Column(db.Integer, db.ForeignKey('content_rel_page_details.id'), nullable=True)  # References page_details
+    original_additional_id = db.Column(db.Integer, db.ForeignKey('content_rel_page_details.id'), nullable=True)  # References content_rel_page_details
     object_key = db.Column(db.String(500), nullable=False)  # R2 path in archive/old
     archived_filename = db.Column(db.String(255), nullable=False)  # With timestamp suffix
     file_size = db.Column(db.BigInteger, default=0)
