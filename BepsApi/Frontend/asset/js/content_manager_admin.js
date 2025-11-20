@@ -888,7 +888,7 @@ async function toggleAdditionalContent(pageId, arrowElement, row) {
         filesSection.innerHTML = `
             <div class="additional-content-header">
                 <h4>추가 컨텐츠</h4>
-                <button class="icon-btn add-btn" onclick="addAdditionalContent(${page.id})">+ 추가</button>
+                <button class="icon-btn add-btn" id="add-additional-btn-${page.id}" onclick="addAdditionalContent(${page.id})">+ 추가</button>
             </div>
             <div class="additional-files-list" id="additional-files-list-${page.id}">
                 <div class="loading-message" style="padding: 20px;">불러오는 중...</div>
@@ -958,6 +958,10 @@ function showUploadProgress(pageId, filename) {
             if (bar) bar.style.width = `${percent}%`;
             if (text) text.textContent = `${Math.round(percent)}%`;
         },
+        setMessage: (message) => {
+            const messageElem = progressItem.querySelector('.upload-progress-text');
+            if (messageElem) messageElem.textContent = message;
+        },
         remove: () => {
             progressItem.remove();
         }
@@ -1024,6 +1028,13 @@ function uploadWithProgress(url, formData, onProgress) {
  */
 async function loadAdditionalContent(pageId) {
     const listContainer = document.getElementById(`additional-files-list-${pageId}`);
+    const addBtn = document.getElementById(`add-additional-btn-${pageId}`);
+
+    // Disable add button while loading
+    if (addBtn) {
+        addBtn.disabled = true;
+        addBtn.textContent = '로딩 중...';
+    }
 
     try {
         const response = await authenticatedFetch(`/contents/page/${pageId}/additionals`);
@@ -1049,6 +1060,12 @@ async function loadAdditionalContent(pageId) {
     } catch (error) {
         console.error('Error loading additional content:', error);
         listContainer.innerHTML = '<div class="loading-message" style="padding: 20px; color: #f44336;">불러오기 실패</div>';
+    } finally {
+        // Re-enable add button
+        if (addBtn) {
+            addBtn.disabled = false;
+            addBtn.textContent = '+ 추가';
+        }
     }
 }
 
@@ -1289,13 +1306,19 @@ async function addAdditionalContent(pageId) {
                         if (progress) progress.updateProgress(percent);
                     });
 
-                    // Remove progress bar
-                    if (progress) progress.remove();
-
-                    alert('추가 컨텐츠가 추가되었습니다.');
+                    // Change message to show server processing
+                    if (progress) {
+                        progress.updateProgress(100);
+                        progress.setMessage('서버 처리 중...');
+                    }
 
                     // Reload additional content list
                     await loadAdditionalContent(pageId);
+
+                    // Remove progress bar after list is loaded
+                    if (progress) progress.remove();
+
+                    alert('추가 컨텐츠가 추가되었습니다.');
 
                 } catch (error) {
                     // Remove progress bar on error
@@ -1338,15 +1361,21 @@ async function uploadAdditionalToPending(additionalId) {
                 if (progress) progress.updateProgress(percent);
             });
 
-            // Remove progress bar
-            if (progress) progress.remove();
-
-            alert('추가 컨텐츠가 대기 상태로 업로드되었습니다.');
+            // Change message to show server processing
+            if (progress) {
+                progress.updateProgress(100);
+                progress.setMessage('서버 처리 중...');
+            }
 
             // Reload additional content list
             if (pageId) {
                 await loadAdditionalContent(pageId);
             }
+
+            // Remove progress bar after list is loaded
+            if (progress) progress.remove();
+
+            alert('추가 컨텐츠가 대기 상태로 업로드되었습니다.');
 
         } catch (error) {
             // Remove progress bar on error
