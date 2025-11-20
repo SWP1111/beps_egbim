@@ -926,6 +926,101 @@ function getPageById(pageId) {
 }
 
 /**
+ * Show upload progress bar in the additional content list
+ */
+function showUploadProgress(pageId, filename) {
+    const listContainer = document.getElementById(`additional-files-list-${pageId}`);
+    if (!listContainer) return null;
+
+    // Create progress item
+    const progressItem = document.createElement('div');
+    progressItem.className = 'upload-progress-item';
+    progressItem.id = `upload-progress-${pageId}`;
+
+    progressItem.innerHTML = `
+        <div class="upload-progress-header">
+            <span class="upload-progress-icon">⟳</span>
+            <span class="upload-progress-text">업로드 중: ${filename}</span>
+        </div>
+        <div class="upload-progress-bar-container">
+            <div class="upload-progress-bar" style="width: 0%"></div>
+            <span class="upload-progress-percentage">0%</span>
+        </div>
+    `;
+
+    // Insert at the beginning of the list
+    listContainer.insertBefore(progressItem, listContainer.firstChild);
+
+    return {
+        updateProgress: (percent) => {
+            const bar = progressItem.querySelector('.upload-progress-bar');
+            const text = progressItem.querySelector('.upload-progress-percentage');
+            if (bar) bar.style.width = `${percent}%`;
+            if (text) text.textContent = `${Math.round(percent)}%`;
+        },
+        remove: () => {
+            progressItem.remove();
+        }
+    };
+}
+
+/**
+ * Upload file with progress tracking using XMLHttpRequest
+ */
+function uploadWithProgress(url, formData, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                if (onProgress) onProgress(percentComplete);
+            }
+        });
+
+        // Handle completion
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve(response);
+                } catch (e) {
+                    resolve(xhr.responseText);
+                }
+            } else {
+                try {
+                    const error = JSON.parse(xhr.responseText);
+                    reject(new Error(error.error || `HTTP ${xhr.status}`));
+                } catch (e) {
+                    reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+                }
+            }
+        });
+
+        // Handle errors
+        xhr.addEventListener('error', () => {
+            reject(new Error('Network error'));
+        });
+
+        xhr.addEventListener('abort', () => {
+            reject(new Error('Upload cancelled'));
+        });
+
+        // Open and send request
+        xhr.open('POST', url);
+
+        // Add auth token
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
+
+        xhr.send(formData);
+    });
+}
+
+/**
  * Load additional content for a page
  */
 async function loadAdditionalContent(pageId) {
@@ -1181,22 +1276,22 @@ async function addAdditionalContent(pageId) {
                 // User entered the part after underscore
                 const fullFilename = `${pagePrefix}_${customSuffix}${fileExt}`;
 
+                // Show progress bar
+                const progress = showUploadProgress(pageId, fullFilename);
+
                 try {
                     const formData = new FormData();
                     formData.append('file', file);
-                    // Note: Backend currently auto-generates filenames and doesn't use custom names
-                    // To use custom filename, backend needs to be modified to accept it
                     formData.append('custom_filename', fullFilename);
 
-                    const response = await authenticatedFetch(`/contents/page/${pageId}/additional`, {
-                        method: 'POST',
-                        body: formData
+                    // Upload with progress tracking
+                    const url = `${API_BASE_URL}/contents/page/${pageId}/additional`;
+                    await uploadWithProgress(url, formData, (percent) => {
+                        if (progress) progress.updateProgress(percent);
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to add additional content');
-                    }
+                    // Remove progress bar
+                    if (progress) progress.remove();
 
                     alert('추가 컨텐츠가 추가되었습니다.');
 
@@ -1204,6 +1299,9 @@ async function addAdditionalContent(pageId) {
                     await loadAdditionalContent(pageId);
 
                 } catch (error) {
+                    // Remove progress bar on error
+                    if (progress) progress.remove();
+
                     console.error('Error adding additional content:', error);
                     alert(error.message);
                 }
@@ -1220,35 +1318,41 @@ async function addAdditionalContent(pageId) {
 async function uploadAdditionalToPending(additionalId) {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
+    fileInput.accept = '.pdf,.mp4,.webm,.mov,.avi,.wmv';
 
     fileInput.onchange = async function() {
         if (!fileInput.files || fileInput.files.length === 0) return;
 
         const file = fileInput.files[0];
+        const pageId = getCurrentPageId();
+
+        // Show progress bar
+        const progress = pageId ? showUploadProgress(pageId, file.name) : null;
 
         try {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await authenticatedFetch(`/contents/additional/${additionalId}/upload-pending`, {
-                method: 'POST',
-                body: formData
+            // Upload with progress tracking
+            const url = `${API_BASE_URL}/contents/additional/${additionalId}/upload-pending`;
+            await uploadWithProgress(url, formData, (percent) => {
+                if (progress) progress.updateProgress(percent);
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Upload failed');
-            }
+            // Remove progress bar
+            if (progress) progress.remove();
 
             alert('추가 컨텐츠가 대기 상태로 업로드되었습니다.');
 
             // Reload additional content list
-            const pageId = getCurrentPageId();
             if (pageId) {
                 await loadAdditionalContent(pageId);
             }
 
         } catch (error) {
+            // Remove progress bar on error
+            if (progress) progress.remove();
+
             console.error('Error uploading additional content:', error);
             alert(error.message);
         }
@@ -1265,6 +1369,14 @@ async function approveAdditionalUpdate(additionalId) {
         return;
     }
 
+    const pageId = getCurrentPageId();
+
+    // Show processing indicator
+    const progress = pageId ? showUploadProgress(pageId, '승인 처리 중...') : null;
+    if (progress) {
+        progress.updateProgress(50); // Show indeterminate progress
+    }
+
     try {
         const response = await authenticatedFetch(`/contents/additional/${additionalId}/approve-update`, {
             method: 'POST'
@@ -1275,15 +1387,25 @@ async function approveAdditionalUpdate(additionalId) {
             throw new Error(errorData.error || 'Approval failed');
         }
 
+        // Update progress to complete
+        if (progress) progress.updateProgress(100);
+
+        // Remove progress after short delay
+        setTimeout(() => {
+            if (progress) progress.remove();
+        }, 500);
+
         alert('추가 컨텐츠가 성공적으로 업데이트되었습니다.');
 
         // Reload additional content list
-        const pageId = getCurrentPageId();
         if (pageId) {
             await loadAdditionalContent(pageId);
         }
 
     } catch (error) {
+        // Remove progress bar on error
+        if (progress) progress.remove();
+
         console.error('Error approving additional update:', error);
         alert(error.message);
     }
