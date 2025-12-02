@@ -403,18 +403,25 @@ def list_r2_objects(prefix):
         r2_client = get_r2_client()
         bucket_name = current_app.config.get('R2_BUCKET_NAME')
 
+        logger.debug(f"[R2 LIST] Bucket: {bucket_name}, Prefix: {prefix}")
+
         response = r2_client.list_objects_v2(
             Bucket=bucket_name,
             Prefix=prefix
         )
 
         if 'Contents' in response:
-            return [obj['Key'] for obj in response['Contents']]
+            objects = [obj['Key'] for obj in response['Contents']]
+            logger.debug(f"[R2 LIST] Found {len(objects)} objects")
+            if len(objects) > 0:
+                logger.debug(f"[R2 LIST] First 5: {objects[:5]}")
+            return objects
         else:
+            logger.debug(f"[R2 LIST] No contents found in response")
             return []
 
     except Exception as e:
-        logger.error(f"Failed to list R2 objects with prefix {prefix}: {str(e)}")
+        logger.error(f"Failed to list R2 objects with prefix {prefix}: {str(e)}", exc_info=True)
         return []
 
 

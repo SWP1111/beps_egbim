@@ -384,58 +384,10 @@ def register_hierarchy_routes(api_contents_bp):
 
             logger.info(f"Channel {channel_id} name updated to '{new_name}'")
 
-            # Rename R2 objects to match new channel name
-            r2_result = rename_hierarchy_r2_objects(
-                old_name=old_name,
-                new_name=new_name,
-                hierarchy_type='channel',
-                parent_path=''
-            )
-
-            if not r2_result['success']:
-                logger.warning(f"R2 rename had errors for channel {channel_id}: {r2_result['errors']}")
-
-            # Update object_id for all pages under this channel
-            try:
-                folders = ContentRelFolders.query.filter_by(
-                    channel_id=channel_id,
-                    is_deleted=False
-                ).all()
-
-                for folder in folders:
-                    pages = ContentRelPages.query.filter_by(
-                        folder_id=folder.id,
-                        is_deleted=False
-                    ).all()
-
-                    for page in pages:
-                        # Regenerate object_id
-                        new_object_id = generate_r2_object_key(
-                            file_id=page.id,
-                            filename=page.name,
-                            is_page_detail=False
-                        )
-                        page.object_id = new_object_id
-
-                        # Also update page details
-                        details = ContentRelPageDetails.query.filter_by(
-                            page_id=page.id,
-                            is_deleted=False
-                        ).all()
-
-                        for detail in details:
-                            new_detail_object_id = generate_r2_object_key(
-                                file_id=detail.id,
-                                filename=detail.name,
-                                is_page_detail=True
-                            )
-                            detail.object_id = new_detail_object_id
-
-                db.session.commit()
-                logger.info(f"Updated object_id fields for channel {channel_id}")
-            except Exception as e:
-                logger.error(f"Error updating object_id fields: {str(e)}")
-                # Don't fail the request, just log the error
+            # NOTE: We don't rename R2 files when channel name changes because:
+            # 1. R2 paths are constructed dynamically from current hierarchy
+            # 2. Moving thousands of files is expensive and unnecessary
+            # 3. Only page name changes require actual R2 file renames
 
             return jsonify({
                 'success': True,
@@ -531,53 +483,10 @@ def register_hierarchy_routes(api_contents_bp):
 
             logger.info(f"Folder {folder_id} updated: name='{folder.name}', channel_id={folder.channel_id}")
 
-            # Rename R2 objects if name or channel changed
-            if old_folder_name != folder.name or old_channel_id != folder.channel_id:
-                r2_result = rename_hierarchy_r2_objects(
-                    old_name=old_folder_name,
-                    new_name=folder.name,
-                    hierarchy_type='folder',
-                    parent_path=old_channel_name if old_channel_id == folder.channel_id else new_channel_name
-                )
-
-                if not r2_result['success']:
-                    logger.warning(f"R2 rename had errors for folder {folder_id}: {r2_result['errors']}")
-
-                # Update object_id for all pages under this folder
-                try:
-                    pages = ContentRelPages.query.filter_by(
-                        folder_id=folder_id,
-                        is_deleted=False
-                    ).all()
-
-                    for page in pages:
-                        # Regenerate object_id
-                        new_object_id = generate_r2_object_key(
-                            file_id=page.id,
-                            filename=page.name,
-                            is_page_detail=False
-                        )
-                        page.object_id = new_object_id
-
-                        # Also update page details
-                        details = ContentRelPageDetails.query.filter_by(
-                            page_id=page.id,
-                            is_deleted=False
-                        ).all()
-
-                        for detail in details:
-                            new_detail_object_id = generate_r2_object_key(
-                                file_id=detail.id,
-                                filename=detail.name,
-                                is_page_detail=True
-                            )
-                            detail.object_id = new_detail_object_id
-
-                    db.session.commit()
-                    logger.info(f"Updated object_id fields for folder {folder_id}")
-                except Exception as e:
-                    logger.error(f"Error updating object_id fields: {str(e)}")
-                    # Don't fail the request, just log the error
+            # NOTE: We don't rename R2 files when folder name or parent changes because:
+            # 1. R2 paths are constructed dynamically from current hierarchy
+            # 2. Folder is just organizational structure
+            # 3. Only page name changes require actual R2 file renames
 
             return jsonify({
                 'success': True,
@@ -692,6 +601,11 @@ def register_hierarchy_routes(api_contents_bp):
 
                 if old_channel_name and old_folder_name:
                     try:
+                        logger.info(f"[DEBUG] Starting R2 rename for page {page_id}")
+                        logger.info(f"[DEBUG] DB values - old_page_name: '{old_page_name}', new_page_name: '{page.name}'")
+                        logger.info(f"[DEBUG] Channel: '{old_channel_name}' → '{new_channel_name}'")
+                        logger.info(f"[DEBUG] Folder: '{old_folder_name}' → '{new_folder_name}'")
+
                         # Sanitize names for R2 paths (replace / with ⁄)
                         old_channel_safe = old_channel_name.replace('/', '⁄').replace('\\', '⁄')
                         old_folder_safe = old_folder_name.replace('/', '⁄').replace('\\', '⁄')
