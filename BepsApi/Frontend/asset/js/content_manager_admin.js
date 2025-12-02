@@ -2026,7 +2026,8 @@ async function loadParentChannels(selectElement, currentChannelId) {
         const option = document.createElement('option');
         option.value = channel.id;
         option.textContent = channel.name;
-        if (channel.id === currentChannelId) {
+        // Use == for type-coerced comparison (handles number vs string)
+        if (channel.id == currentChannelId) {
             option.selected = true;
         }
         selectElement.appendChild(option);
@@ -2049,7 +2050,8 @@ async function loadParentFolders(selectElement, currentFolderId) {
                 const option = document.createElement('option');
                 option.value = category.id;
                 option.textContent = `${channel.name} > ${category.name}`;
-                if (category.id === currentFolderId) {
+                // Use == for type-coerced comparison (handles number vs string)
+                if (category.id == currentFolderId) {
                     option.selected = true;
                 }
                 selectElement.appendChild(option);
