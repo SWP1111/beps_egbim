@@ -388,6 +388,38 @@
             </div>
         </div>
 
+        <!-- Content Edit Modal (for Channel/Folder/Page name editing) -->
+        <div id="content-edit-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="content-edit-title">항목 수정</h2>
+                    <button class="modal-close" id="content-edit-close-btn">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="edit-form-group">
+                        <label for="content-edit-name-input">이름</label>
+                        <input type="text" id="content-edit-name-input" class="edit-input" placeholder="이름을 입력하세요">
+                    </div>
+
+                    <!-- Parent selection (shown only for folders and pages) -->
+                    <div id="content-edit-parent-group" class="edit-form-group" style="display: none;">
+                        <label id="content-edit-parent-label">상위 항목</label>
+                        <select id="content-edit-parent-select" class="edit-select">
+                            <option value="">선택</option>
+                        </select>
+                    </div>
+
+                    <div id="content-edit-error" class="error-message" style="display: none;"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="content-edit-confirm-btn" class="confirm-btn">저장</button>
+                    <button id="content-edit-cancel-btn" class="cancel-btn">취소</button>
+                </div>
+            </div>
+        </div>
+
         <div id="modal-overlay" class="modal-overlay"></div>
     </div>
 </body>

@@ -323,4 +323,234 @@ def register_hierarchy_routes(api_contents_bp):
 
         except Exception as e:
             logger.error(f"Error getting hierarchy with managers: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @api_contents_bp.route('/hierarchy/channel/<int:channel_id>', methods=['PUT'])
+    def update_channel(channel_id):
+        """
+        Update a channel's name
+
+        Request body:
+        {
+            "name": "New Channel Name"
+        }
+        """
+        try:
+            data = request.get_json()
+
+            if not data or 'name' not in data:
+                return jsonify({'error': 'Missing name in request body'}), 400
+
+            new_name = data['name'].strip()
+            if not new_name:
+                return jsonify({'error': 'Name cannot be empty'}), 400
+
+            # Get the channel
+            channel = ContentRelChannels.query.filter_by(
+                id=channel_id,
+                is_deleted=False
+            ).first()
+
+            if not channel:
+                return jsonify({'error': 'Channel not found'}), 404
+
+            # Check if name already exists (excluding current channel)
+            existing = ContentRelChannels.query.filter(
+                ContentRelChannels.name == new_name,
+                ContentRelChannels.id != channel_id,
+                ContentRelChannels.is_deleted == False
+            ).first()
+
+            if existing:
+                return jsonify({'error': '같은 이름의 탭이 이미 존재합니다'}), 400
+
+            # Update the channel
+            channel.name = new_name
+            channel.updated_at = datetime.datetime.now()
+
+            db.session.commit()
+
+            logger.info(f"Channel {channel_id} name updated to '{new_name}'")
+
+            return jsonify({
+                'success': True,
+                'message': 'Channel updated successfully',
+                'channel': {
+                    'id': channel.id,
+                    'name': channel.name,
+                    'updated_at': channel.updated_at.isoformat() if channel.updated_at else None
+                }
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating channel {channel_id}: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @api_contents_bp.route('/hierarchy/folder/<int:folder_id>', methods=['PUT'])
+    def update_folder(folder_id):
+        """
+        Update a folder's name and/or parent channel
+
+        Request body:
+        {
+            "name": "New Folder Name",
+            "channel_id": 123  # Optional: change parent channel
+        }
+        """
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({'error': 'Missing request body'}), 400
+
+            # Get the folder
+            folder = ContentRelFolders.query.filter_by(
+                id=folder_id,
+                is_deleted=False,
+                parent_id=None  # Only top-level folders (categories)
+            ).first()
+
+            if not folder:
+                return jsonify({'error': 'Folder not found or not a top-level category'}), 404
+
+            # Update name if provided
+            if 'name' in data:
+                new_name = data['name'].strip()
+                if not new_name:
+                    return jsonify({'error': 'Name cannot be empty'}), 400
+
+                # Check if name already exists in same channel (excluding current folder)
+                channel_id = data.get('channel_id', folder.channel_id)
+                existing = ContentRelFolders.query.filter(
+                    ContentRelFolders.name == new_name,
+                    ContentRelFolders.channel_id == channel_id,
+                    ContentRelFolders.parent_id == None,
+                    ContentRelFolders.id != folder_id,
+                    ContentRelFolders.is_deleted == False
+                ).first()
+
+                if existing:
+                    return jsonify({'error': '같은 탭에 같은 이름의 카테고리가 이미 존재합니다'}), 400
+
+                folder.name = new_name
+
+            # Update channel if provided
+            if 'channel_id' in data:
+                new_channel_id = int(data['channel_id'])
+
+                # Verify channel exists
+                channel = ContentRelChannels.query.filter_by(
+                    id=new_channel_id,
+                    is_deleted=False
+                ).first()
+
+                if not channel:
+                    return jsonify({'error': 'Target channel not found'}), 404
+
+                folder.channel_id = new_channel_id
+
+            folder.updated_at = datetime.datetime.now()
+
+            db.session.commit()
+
+            logger.info(f"Folder {folder_id} updated: name='{folder.name}', channel_id={folder.channel_id}")
+
+            return jsonify({
+                'success': True,
+                'message': 'Folder updated successfully',
+                'folder': {
+                    'id': folder.id,
+                    'name': folder.name,
+                    'channel_id': folder.channel_id,
+                    'updated_at': folder.updated_at.isoformat() if folder.updated_at else None
+                }
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating folder {folder_id}: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @api_contents_bp.route('/hierarchy/page/<int:page_id>', methods=['PUT'])
+    def update_page(page_id):
+        """
+        Update a page's name and/or parent folder
+
+        Request body:
+        {
+            "name": "New Page Name",
+            "folder_id": 123  # Optional: change parent folder
+        }
+        """
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({'error': 'Missing request body'}), 400
+
+            # Get the page
+            page = ContentRelPages.query.filter_by(
+                id=page_id,
+                is_deleted=False
+            ).first()
+
+            if not page:
+                return jsonify({'error': 'Page not found'}), 404
+
+            # Update name if provided
+            if 'name' in data:
+                new_name = data['name'].strip()
+                if not new_name:
+                    return jsonify({'error': 'Name cannot be empty'}), 400
+
+                # Check if name already exists in same folder (excluding current page)
+                folder_id = data.get('folder_id', page.folder_id)
+                existing = ContentRelPages.query.filter(
+                    ContentRelPages.name == new_name,
+                    ContentRelPages.folder_id == folder_id,
+                    ContentRelPages.id != page_id,
+                    ContentRelPages.is_deleted == False
+                ).first()
+
+                if existing:
+                    return jsonify({'error': '같은 카테고리에 같은 이름의 페이지가 이미 존재합니다'}), 400
+
+                page.name = new_name
+
+            # Update folder if provided
+            if 'folder_id' in data:
+                new_folder_id = int(data['folder_id'])
+
+                # Verify folder exists
+                folder = ContentRelFolders.query.filter_by(
+                    id=new_folder_id,
+                    is_deleted=False
+                ).first()
+
+                if not folder:
+                    return jsonify({'error': 'Target folder not found'}), 404
+
+                page.folder_id = new_folder_id
+
+            page.updated_at = datetime.datetime.now()
+
+            db.session.commit()
+
+            logger.info(f"Page {page_id} updated: name='{page.name}', folder_id={page.folder_id}")
+
+            return jsonify({
+                'success': True,
+                'message': 'Page updated successfully',
+                'page': {
+                    'id': page.id,
+                    'name': page.name,
+                    'folder_id': page.folder_id,
+                    'updated_at': page.updated_at.isoformat() if page.updated_at else None
+                }
+            })
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating page {page_id}: {str(e)}")
             return jsonify({'error': str(e)}), 500 

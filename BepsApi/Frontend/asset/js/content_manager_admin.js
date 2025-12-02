@@ -711,18 +711,52 @@ function createTableRow(channel, category, page, isFirstChannelRow, channelRowSp
     // Channel column (merged for all rows in channel)
     if (isFirstChannelRow) {
         const channelCell = document.createElement('td');
-        channelCell.textContent = channel.name;
         channelCell.rowSpan = channelRowSpan;
         channelCell.className = 'merged-cell';
+
+        const editableDiv = document.createElement('div');
+        editableDiv.className = 'editable-cell';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = channel.name;
+        editableDiv.appendChild(nameSpan);
+
+        const editIcon = document.createElement('span');
+        editIcon.className = 'edit-icon';
+        editIcon.innerHTML = '✏️';
+        editIcon.title = '탭 이름 수정';
+        editIcon.addEventListener('click', () => {
+            openEditModal('channel', channel.id, channel.name);
+        });
+        editableDiv.appendChild(editIcon);
+
+        channelCell.appendChild(editableDiv);
         row.appendChild(channelCell);
     }
 
     // Category column (merged for all pages in category)
     if (isFirstCategoryRow) {
         const categoryCell = document.createElement('td');
-        categoryCell.textContent = category.name;
         categoryCell.rowSpan = categoryRowSpan;
         categoryCell.className = 'merged-cell';
+
+        const editableDiv = document.createElement('div');
+        editableDiv.className = 'editable-cell';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = category.name;
+        editableDiv.appendChild(nameSpan);
+
+        const editIcon = document.createElement('span');
+        editIcon.className = 'edit-icon';
+        editIcon.innerHTML = '✏️';
+        editIcon.title = '카테고리 이름 수정 및 상위 탭 변경';
+        editIcon.addEventListener('click', () => {
+            openEditModal('folder', category.id, category.name, category.channel_id, channel.name);
+        });
+        editableDiv.appendChild(editIcon);
+
+        categoryCell.appendChild(editableDiv);
         row.appendChild(categoryCell);
     }
 
@@ -737,6 +771,17 @@ function createTableRow(channel, category, page, isFirstChannelRow, channelRowSp
         const nameSpan = document.createElement('span');
         nameSpan.textContent = pageName;
         pageCell.appendChild(nameSpan);
+
+        // Edit icon for page
+        const editIcon = document.createElement('span');
+        editIcon.className = 'edit-icon';
+        editIcon.innerHTML = '✏️';
+        editIcon.title = '페이지 이름 수정 및 상위 카테고리 변경';
+        editIcon.style.marginLeft = '8px';
+        editIcon.addEventListener('click', () => {
+            openEditModal('page', page.id, pageName, page.folder_id, category.name);
+        });
+        pageCell.appendChild(editIcon);
 
         if (page.has_pending) {
             const badge = document.createElement('span');
@@ -1840,6 +1885,223 @@ function showFileNamingModal(prefix, suffix, placeholder, onConfirm) {
     cancelBtn.addEventListener('click', handleCancel);
     closeBtn.addEventListener('click', handleCancel);
     input.addEventListener('keypress', handleKeyPress);
+}
+
+/**
+ * Open edit modal for channel/folder/page
+ * @param {string} type - 'channel', 'folder', or 'page'
+ * @param {number} id - ID of the item to edit
+ * @param {string} currentName - Current name of the item
+ * @param {number} parentId - Current parent ID (for folders and pages)
+ * @param {string} parentName - Current parent name (for display)
+ */
+async function openEditModal(type, id, currentName, parentId = null, parentName = null) {
+    const modal = document.getElementById('content-edit-modal');
+    const overlay = document.getElementById('modal-overlay');
+    const titleEl = document.getElementById('content-edit-title');
+    const nameInput = document.getElementById('content-edit-name-input');
+    const parentGroup = document.getElementById('content-edit-parent-group');
+    const parentLabel = document.getElementById('content-edit-parent-label');
+    const parentSelect = document.getElementById('content-edit-parent-select');
+    const errorDiv = document.getElementById('content-edit-error');
+    const confirmBtn = document.getElementById('content-edit-confirm-btn');
+    const cancelBtn = document.getElementById('content-edit-cancel-btn');
+    const closeBtn = document.getElementById('content-edit-close-btn');
+
+    // Set modal title based on type
+    const titles = {
+        'channel': '탭 수정',
+        'folder': '카테고리 수정',
+        'page': '페이지 수정'
+    };
+    titleEl.textContent = titles[type] || '항목 수정';
+
+    // Set current name
+    nameInput.value = currentName;
+    errorDiv.style.display = 'none';
+
+    // Show/hide parent selection based on type
+    if (type === 'channel') {
+        parentGroup.style.display = 'none';
+    } else {
+        parentGroup.style.display = 'block';
+
+        // Set parent label
+        if (type === 'folder') {
+            parentLabel.textContent = '상위 탭';
+            // Load channels
+            await loadParentChannels(parentSelect, parentId);
+        } else if (type === 'page') {
+            parentLabel.textContent = '상위 카테고리';
+            // Load folders
+            await loadParentFolders(parentSelect, parentId);
+        }
+    }
+
+    // Show modal
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+    nameInput.focus();
+    nameInput.select();
+
+    // Event handlers
+    const handleConfirm = async () => {
+        const newName = nameInput.value.trim();
+
+        if (!newName) {
+            errorDiv.textContent = '이름을 입력해주세요.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Get selected parent (if applicable)
+        const newParentId = type !== 'channel' ? parentSelect.value : null;
+
+        if (type !== 'channel' && !newParentId) {
+            errorDiv.textContent = parentLabel.textContent + '을(를) 선택해주세요.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Disable button during save
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '저장 중...';
+
+        try {
+            await saveContentEdit(type, id, newName, newParentId);
+            cleanup();
+            // Reload hierarchy and table
+            await loadHierarchyWithManagers();
+            await loadContentTable();
+            alert('수정되었습니다.');
+        } catch (error) {
+            console.error('Error saving edit:', error);
+            errorDiv.textContent = error.message || '저장 중 오류가 발생했습니다.';
+            errorDiv.style.display = 'block';
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '저장';
+        }
+    };
+
+    const handleCancel = () => {
+        cleanup();
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleConfirm();
+        } else if (e.key === 'Escape') {
+            handleCancel();
+        }
+    };
+
+    const cleanup = () => {
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '저장';
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        nameInput.removeEventListener('keypress', handleKeyPress);
+    };
+
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
+    closeBtn.addEventListener('click', handleCancel);
+    nameInput.addEventListener('keypress', handleKeyPress);
+}
+
+/**
+ * Load parent channels for folder editing
+ */
+async function loadParentChannels(selectElement, currentChannelId) {
+    selectElement.innerHTML = '<option value="">선택</option>';
+
+    if (!hierarchyData || !hierarchyData.channels) {
+        return;
+    }
+
+    hierarchyData.channels.forEach(channel => {
+        const option = document.createElement('option');
+        option.value = channel.id;
+        option.textContent = channel.name;
+        if (channel.id === currentChannelId) {
+            option.selected = true;
+        }
+        selectElement.appendChild(option);
+    });
+}
+
+/**
+ * Load parent folders for page editing
+ */
+async function loadParentFolders(selectElement, currentFolderId) {
+    selectElement.innerHTML = '<option value="">선택</option>';
+
+    if (!hierarchyData || !hierarchyData.channels) {
+        return;
+    }
+
+    hierarchyData.channels.forEach(channel => {
+        if (channel.categories && channel.categories.length > 0) {
+            channel.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = `${channel.name} > ${category.name}`;
+                if (category.id === currentFolderId) {
+                    option.selected = true;
+                }
+                selectElement.appendChild(option);
+            });
+        }
+    });
+}
+
+/**
+ * Save content edit via API
+ */
+async function saveContentEdit(type, id, newName, newParentId) {
+    let endpoint = '';
+    let payload = {};
+
+    switch(type) {
+        case 'channel':
+            endpoint = `/hierarchy/channel/${id}`;
+            payload = { name: newName };
+            break;
+        case 'folder':
+            endpoint = `/hierarchy/folder/${id}`;
+            payload = {
+                name: newName,
+                channel_id: parseInt(newParentId)
+            };
+            break;
+        case 'page':
+            endpoint = `/hierarchy/page/${id}`;
+            payload = {
+                name: newName,
+                folder_id: parseInt(newParentId)
+            };
+            break;
+        default:
+            throw new Error('Invalid type');
+    }
+
+    const response = await authenticatedFetch(endpoint, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '저장 실패');
+    }
+
+    return await response.json();
 }
 
 // Make functions globally accessible

@@ -1039,6 +1039,67 @@ td.merged-cell {
     text-shadow: 0 0 2px white;
 }
 
+/* Inline Edit Pencil Icons */
+.editable-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.edit-icon {
+    cursor: pointer;
+    color: #757575;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 3px;
+    transition: all 0.2s;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.edit-icon:hover {
+    color: #3f51b5;
+    background: #f0f0f0;
+    opacity: 1;
+}
+
+/* Content Edit Modal */
+.edit-form-group {
+    margin-bottom: 20px;
+}
+
+.edit-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.edit-input,
+.edit-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    transition: border-color 0.2s;
+}
+
+.edit-input:focus,
+.edit-select:focus {
+    outline: none;
+    border-color: #3f51b5;
+    box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.1);
+}
+
+.edit-select {
+    cursor: pointer;
+    background-color: white;
+}
+
 @media (max-width: 768px) {
     .header-section {
         flex-direction: column;
