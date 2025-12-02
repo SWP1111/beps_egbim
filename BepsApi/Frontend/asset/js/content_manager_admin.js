@@ -2016,7 +2016,6 @@ async function openEditModal(type, id, currentName, parentId = null, parentName 
  * Load parent channels for folder editing
  */
 async function loadParentChannels(selectElement, currentChannelId) {
-    console.log('loadParentChannels called with currentChannelId:', currentChannelId, 'type:', typeof currentChannelId);
     selectElement.innerHTML = '<option value="">선택</option>';
 
     if (!hierarchyData || !hierarchyData.channels) {
@@ -2028,10 +2027,8 @@ async function loadParentChannels(selectElement, currentChannelId) {
         option.value = channel.id;
         option.textContent = channel.name;
         // Use == for type-coerced comparison (handles number vs string)
-        console.log('Comparing channel.id:', channel.id, 'type:', typeof channel.id, 'with currentChannelId:', currentChannelId, 'equal?', channel.id == currentChannelId);
         if (channel.id == currentChannelId) {
             option.selected = true;
-            console.log('Selected channel:', channel.name);
         }
         selectElement.appendChild(option);
     });
@@ -2041,7 +2038,6 @@ async function loadParentChannels(selectElement, currentChannelId) {
  * Load parent folders for page editing
  */
 async function loadParentFolders(selectElement, currentFolderId) {
-    console.log('loadParentFolders called with currentFolderId:', currentFolderId, 'type:', typeof currentFolderId);
     selectElement.innerHTML = '<option value="">선택</option>';
 
     if (!hierarchyData || !hierarchyData.channels) {
@@ -2055,10 +2051,8 @@ async function loadParentFolders(selectElement, currentFolderId) {
                 option.value = category.id;
                 option.textContent = `${channel.name} > ${category.name}`;
                 // Use == for type-coerced comparison (handles number vs string)
-                console.log('Comparing category.id:', category.id, 'type:', typeof category.id, 'with currentFolderId:', currentFolderId, 'equal?', category.id == currentFolderId);
                 if (category.id == currentFolderId) {
                     option.selected = true;
-                    console.log('Selected folder:', category.name);
                 }
                 selectElement.appendChild(option);
             });

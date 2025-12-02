@@ -415,4 +415,106 @@ def list_r2_objects(prefix):
 
     except Exception as e:
         logger.error(f"Failed to list R2 objects with prefix {prefix}: {str(e)}")
-        return [] 
+        return []
+
+
+def rename_hierarchy_r2_objects(old_name, new_name, hierarchy_type='channel', parent_path=''):
+    """
+    Rename R2 objects when hierarchy changes (channel/folder/page rename)
+
+    This function finds all R2 objects matching the old hierarchy path and renames them
+    to match the new hierarchy path. It handles:
+    - Main content files
+    - Pending content (beps-archive/pending/)
+    - Archived content (beps-archive/old/)
+
+    Args:
+        old_name: Old name of the channel/folder/page
+        new_name: New name of the channel/folder/page
+        hierarchy_type: Type of hierarchy ('channel', 'folder', 'page')
+        parent_path: Parent path in the hierarchy (e.g., "Channel1/Folder1")
+
+    Returns:
+        Dictionary with success status and details
+    """
+    try:
+        r2_client = get_r2_client()
+        bucket_name = current_app.config.get('R2_BUCKET_NAME')
+
+        # Sanitize names for R2 paths
+        old_safe_name = old_name.replace('/', '⁄').replace('\\', '⁄')
+        new_safe_name = new_name.replace('/', '⁄').replace('\\', '⁄')
+
+        # Build the old and new path prefixes
+        if parent_path:
+            parent_safe = parent_path.replace('/', '⁄').replace('\\', '⁄')
+            old_prefix = f"{parent_safe}/{old_safe_name}"
+            new_prefix = f"{parent_safe}/{new_safe_name}"
+        else:
+            old_prefix = old_safe_name
+            new_prefix = new_safe_name
+
+        # Prefixes to check in R2
+        prefixes_to_check = [
+            f"beps-contents/{old_prefix}",
+            f"beps-archive/pending/{old_prefix}",
+            f"beps-archive/old/{old_prefix}"
+        ]
+
+        renamed_count = 0
+        errors = []
+
+        for prefix in prefixes_to_check:
+            # List all objects with this prefix
+            objects = list_r2_objects(prefix)
+
+            for old_key in objects:
+                # Generate new key by replacing the old prefix
+                if hierarchy_type == 'channel':
+                    # Replace the channel name (first component after base prefix)
+                    new_key = old_key.replace(f"/{old_safe_name}/", f"/{new_safe_name}/", 1)
+                elif hierarchy_type == 'folder':
+                    # Replace the folder name in the path
+                    new_key = old_key.replace(f"/{old_safe_name}/", f"/{new_safe_name}/", 1)
+                elif hierarchy_type == 'page':
+                    # For pages, we need to rename both the file and the folder (for additionals)
+                    import os as os_module
+
+                    # Get the file extension from the old key
+                    old_basename = os_module.basename(old_key)
+                    old_name_without_ext = os_module.path.splitext(old_name)[0]
+                    new_name_without_ext = os_module.path.splitext(new_name)[0]
+
+                    # Replace in path (for additional content folders)
+                    new_key = old_key.replace(f"/{old_safe_name}/", f"/{new_safe_name}/")
+
+                    # Also replace the filename itself if it matches
+                    if old_basename.startswith(old_name):
+                        new_basename = old_basename.replace(old_name, new_name, 1)
+                        new_key = os_module.path.join(os_module.path.dirname(new_key), new_basename)
+
+                # Move the object
+                try:
+                    if move_r2_object(old_key, new_key):
+                        renamed_count += 1
+                        logger.info(f"Renamed R2 object: {old_key} -> {new_key}")
+                    else:
+                        errors.append(f"Failed to move {old_key} to {new_key}")
+                except Exception as e:
+                    error_msg = f"Error moving {old_key}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+
+        return {
+            'success': len(errors) == 0,
+            'renamed_count': renamed_count,
+            'errors': errors
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to rename hierarchy R2 objects: {str(e)}")
+        return {
+            'success': False,
+            'renamed_count': 0,
+            'errors': [str(e)]
+        } 

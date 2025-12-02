@@ -14,6 +14,7 @@ from extensions import db
 from models import ContentRelPages, ContentRelFolders, ContentRelChannels, ContentRelPageDetails
 from services.content_hierarchy_service import ContentHierarchyService
 from log_config import get_content_logger
+from blueprints.contents.r2_utils import rename_hierarchy_r2_objects, generate_r2_object_key
 
 # Initialize logger
 logger = get_content_logger()
@@ -268,6 +269,7 @@ def register_hierarchy_routes(api_contents_bp):
                         'id': category.id,
                         'name': category.name,
                         'description': category.description,
+                        'channel_id': category.channel_id,
                         'manager': category_manager,  # 책임자
                         'pages': []
                     }
@@ -307,6 +309,7 @@ def register_hierarchy_routes(api_contents_bp):
                             'name': page.name,
                             'description': page.description,
                             'object_id': page.object_id,
+                            'folder_id': page.folder_id,
                             'manager': page_manager,  # 실무자
                             'has_pending': has_pending,
                             'created_at': page.created_at.isoformat() if page.created_at else None,
@@ -364,6 +367,9 @@ def register_hierarchy_routes(api_contents_bp):
             if existing:
                 return jsonify({'error': '같은 이름의 탭이 이미 존재합니다'}), 400
 
+            # Store old name for R2 renaming
+            old_name = channel.name
+
             # Update the channel
             channel.name = new_name
             channel.updated_at = datetime.datetime.now()
@@ -371,6 +377,59 @@ def register_hierarchy_routes(api_contents_bp):
             db.session.commit()
 
             logger.info(f"Channel {channel_id} name updated to '{new_name}'")
+
+            # Rename R2 objects to match new channel name
+            r2_result = rename_hierarchy_r2_objects(
+                old_name=old_name,
+                new_name=new_name,
+                hierarchy_type='channel',
+                parent_path=''
+            )
+
+            if not r2_result['success']:
+                logger.warning(f"R2 rename had errors for channel {channel_id}: {r2_result['errors']}")
+
+            # Update object_id for all pages under this channel
+            try:
+                folders = ContentRelFolders.query.filter_by(
+                    channel_id=channel_id,
+                    is_deleted=False
+                ).all()
+
+                for folder in folders:
+                    pages = ContentRelPages.query.filter_by(
+                        folder_id=folder.id,
+                        is_deleted=False
+                    ).all()
+
+                    for page in pages:
+                        # Regenerate object_id
+                        new_object_id = generate_r2_object_key(
+                            file_id=page.id,
+                            filename=page.name,
+                            is_page_detail=False
+                        )
+                        page.object_id = new_object_id
+
+                        # Also update page details
+                        details = ContentRelPageDetails.query.filter_by(
+                            page_id=page.id,
+                            is_deleted=False
+                        ).all()
+
+                        for detail in details:
+                            new_detail_object_id = generate_r2_object_key(
+                                file_id=detail.id,
+                                filename=detail.name,
+                                is_page_detail=True
+                            )
+                            detail.object_id = new_detail_object_id
+
+                db.session.commit()
+                logger.info(f"Updated object_id fields for channel {channel_id}")
+            except Exception as e:
+                logger.error(f"Error updating object_id fields: {str(e)}")
+                # Don't fail the request, just log the error
 
             return jsonify({
                 'success': True,
@@ -414,6 +473,14 @@ def register_hierarchy_routes(api_contents_bp):
             if not folder:
                 return jsonify({'error': 'Folder not found or not a top-level category'}), 404
 
+            # Store old values for R2 renaming
+            old_folder_name = folder.name
+            old_channel_id = folder.channel_id
+
+            # Get old channel name for path construction
+            old_channel = ContentRelChannels.query.get(old_channel_id)
+            old_channel_name = old_channel.name if old_channel else ''
+
             # Update name if provided
             if 'name' in data:
                 new_name = data['name'].strip()
@@ -436,25 +503,75 @@ def register_hierarchy_routes(api_contents_bp):
                 folder.name = new_name
 
             # Update channel if provided
+            new_channel_name = old_channel_name
             if 'channel_id' in data:
                 new_channel_id = int(data['channel_id'])
 
                 # Verify channel exists
-                channel = ContentRelChannels.query.filter_by(
+                new_channel = ContentRelChannels.query.filter_by(
                     id=new_channel_id,
                     is_deleted=False
                 ).first()
 
-                if not channel:
+                if not new_channel:
                     return jsonify({'error': 'Target channel not found'}), 404
 
                 folder.channel_id = new_channel_id
+                new_channel_name = new_channel.name
 
             folder.updated_at = datetime.datetime.now()
 
             db.session.commit()
 
             logger.info(f"Folder {folder_id} updated: name='{folder.name}', channel_id={folder.channel_id}")
+
+            # Rename R2 objects if name or channel changed
+            if old_folder_name != folder.name or old_channel_id != folder.channel_id:
+                r2_result = rename_hierarchy_r2_objects(
+                    old_name=old_folder_name,
+                    new_name=folder.name,
+                    hierarchy_type='folder',
+                    parent_path=old_channel_name if old_channel_id == folder.channel_id else new_channel_name
+                )
+
+                if not r2_result['success']:
+                    logger.warning(f"R2 rename had errors for folder {folder_id}: {r2_result['errors']}")
+
+                # Update object_id for all pages under this folder
+                try:
+                    pages = ContentRelPages.query.filter_by(
+                        folder_id=folder_id,
+                        is_deleted=False
+                    ).all()
+
+                    for page in pages:
+                        # Regenerate object_id
+                        new_object_id = generate_r2_object_key(
+                            file_id=page.id,
+                            filename=page.name,
+                            is_page_detail=False
+                        )
+                        page.object_id = new_object_id
+
+                        # Also update page details
+                        details = ContentRelPageDetails.query.filter_by(
+                            page_id=page.id,
+                            is_deleted=False
+                        ).all()
+
+                        for detail in details:
+                            new_detail_object_id = generate_r2_object_key(
+                                file_id=detail.id,
+                                filename=detail.name,
+                                is_page_detail=True
+                            )
+                            detail.object_id = new_detail_object_id
+
+                    db.session.commit()
+                    logger.info(f"Updated object_id fields for folder {folder_id}")
+                except Exception as e:
+                    logger.error(f"Error updating object_id fields: {str(e)}")
+                    # Don't fail the request, just log the error
 
             return jsonify({
                 'success': True,
@@ -498,6 +615,18 @@ def register_hierarchy_routes(api_contents_bp):
             if not page:
                 return jsonify({'error': 'Page not found'}), 404
 
+            # Store old values for R2 renaming
+            old_page_name = page.name
+            old_folder_id = page.folder_id
+
+            # Get old folder and channel for path construction
+            old_folder = ContentRelFolders.query.get(old_folder_id)
+            if old_folder:
+                old_channel = ContentRelChannels.query.get(old_folder.channel_id)
+                old_parent_path = f"{old_channel.name}/{old_folder.name}" if old_channel else old_folder.name
+            else:
+                old_parent_path = ''
+
             # Update name if provided
             if 'name' in data:
                 new_name = data['name'].strip()
@@ -519,25 +648,72 @@ def register_hierarchy_routes(api_contents_bp):
                 page.name = new_name
 
             # Update folder if provided
+            new_parent_path = old_parent_path
             if 'folder_id' in data:
                 new_folder_id = int(data['folder_id'])
 
                 # Verify folder exists
-                folder = ContentRelFolders.query.filter_by(
+                new_folder = ContentRelFolders.query.filter_by(
                     id=new_folder_id,
                     is_deleted=False
                 ).first()
 
-                if not folder:
+                if not new_folder:
                     return jsonify({'error': 'Target folder not found'}), 404
 
                 page.folder_id = new_folder_id
+
+                # Get new parent path
+                new_channel = ContentRelChannels.query.get(new_folder.channel_id)
+                new_parent_path = f"{new_channel.name}/{new_folder.name}" if new_channel else new_folder.name
 
             page.updated_at = datetime.datetime.now()
 
             db.session.commit()
 
             logger.info(f"Page {page_id} updated: name='{page.name}', folder_id={page.folder_id}")
+
+            # Rename R2 objects if name or folder changed
+            if old_page_name != page.name or old_folder_id != page.folder_id:
+                r2_result = rename_hierarchy_r2_objects(
+                    old_name=old_page_name,
+                    new_name=page.name,
+                    hierarchy_type='page',
+                    parent_path=old_parent_path if old_folder_id == page.folder_id else new_parent_path
+                )
+
+                if not r2_result['success']:
+                    logger.warning(f"R2 rename had errors for page {page_id}: {r2_result['errors']}")
+
+                # Update object_id for the page and its details
+                try:
+                    # Update page object_id
+                    new_object_id = generate_r2_object_key(
+                        file_id=page.id,
+                        filename=page.name,
+                        is_page_detail=False
+                    )
+                    page.object_id = new_object_id
+
+                    # Also update page details
+                    details = ContentRelPageDetails.query.filter_by(
+                        page_id=page.id,
+                        is_deleted=False
+                    ).all()
+
+                    for detail in details:
+                        new_detail_object_id = generate_r2_object_key(
+                            file_id=detail.id,
+                            filename=detail.name,
+                            is_page_detail=True
+                        )
+                        detail.object_id = new_detail_object_id
+
+                    db.session.commit()
+                    logger.info(f"Updated object_id fields for page {page_id}")
+                except Exception as e:
+                    logger.error(f"Error updating object_id fields: {str(e)}")
+                    # Don't fail the request, just log the error
 
             return jsonify({
                 'success': True,
