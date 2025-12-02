@@ -710,40 +710,62 @@ def register_hierarchy_routes(api_contents_bp):
                         new_name_without_ext = os_module.path.splitext(new_page_safe)[0]
 
                         logger.info(f"Renaming R2 objects for page {page_id}:")
-                        logger.info(f"  Old: {old_base_path}/{old_page_safe}")
-                        logger.info(f"  New: {new_base_path}/{new_page_safe}")
+                        logger.info(f"  Old base: {old_base_path}/{old_name_without_ext}")
+                        logger.info(f"  New base: {new_base_path}/{new_name_without_ext}")
 
-                        # 1. Rename the page file itself
-                        old_page_file = f"{old_base_path}/{old_page_safe}"
-                        new_page_file = f"{new_base_path}/{new_page_safe}"
+                        # 1. Find and rename the page file (search for any extension)
+                        # Page names in DB don't have extensions, but R2 files do (e.g., .png, .pdf, .webm)
+                        old_page_prefix = f"{old_base_path}/{old_name_without_ext}"
 
-                        if check_r2_object_exists(old_page_file):
-                            if move_r2_object(old_page_file, new_page_file):
-                                logger.info(f"✓ Renamed page file: {old_page_file} → {new_page_file}")
+                        # List all files matching this prefix
+                        page_files = list_r2_objects(old_page_prefix)
+                        logger.info(f"Searching for page file with prefix: {old_page_prefix}")
+                        logger.info(f"Found {len(page_files)} objects matching prefix")
+
+                        # Filter to get only the direct page file (not files in subdirectories)
+                        page_file_found = False
+                        for old_file in page_files:
+                            logger.debug(f"Checking file: {old_file}")
+                            # Check if this is the page file itself (not a subdirectory file)
+                            # Page file: beps-contents/.../001_개요.png
+                            # Subfolder: beps-contents/.../001_개요/something.pdf (should skip)
+                            remainder = old_file[len(old_page_prefix):]
+
+                            # Direct file has format: .png or .pdf (starts with dot, no slashes)
+                            # Subfolder file has format: /something.pdf (starts with slash)
+                            if remainder.startswith('.') and '/' not in remainder:
+                                # This is the direct page file
+                                file_ext = os_module.path.splitext(old_file)[1]
+                                new_page_file = f"{new_base_path}/{new_name_without_ext}{file_ext}"
+
+                                if move_r2_object(old_file, new_page_file):
+                                    logger.info(f"✓ Renamed page file: {old_file} → {new_page_file}")
+                                    page_file_found = True
+                                else:
+                                    logger.error(f"✗ Failed to rename page file: {old_file}")
                             else:
-                                logger.error(f"✗ Failed to rename page file: {old_page_file}")
-                        else:
-                            logger.warning(f"⚠ Page file not found in R2: {old_page_file}")
+                                logger.debug(f"Skipping subfolder item: {old_file}")
+
+                        if not page_file_found:
+                            logger.warning(f"⚠ No page file found with prefix: {old_page_prefix}")
 
                         # Also check pending and archived versions of the page file
-                        for prefix in ['beps-archive/pending/', 'beps-archive/old/']:
-                            old_archived_file = old_page_file.replace('beps-contents/', prefix)
+                        for base_prefix in ['beps-archive/pending/', 'beps-archive/old/']:
+                            old_archived_prefix = f"{base_prefix}{old_channel_safe}/{old_folder_safe}/{old_name_without_ext}"
 
-                            # List files with this prefix (archived files have timestamp suffixes)
-                            archived_files = list_r2_objects(old_archived_file.rsplit('.', 1)[0])
+                            # List files with this prefix (archived files may have timestamp suffixes)
+                            archived_files = list_r2_objects(old_archived_prefix)
 
                             for old_file in archived_files:
-                                # Reconstruct new path maintaining the timestamp
-                                new_file = old_file.replace(
-                                    f"{prefix}{old_channel_safe}/{old_folder_safe}/{old_page_safe}",
-                                    f"{prefix}{new_channel_safe}/{new_folder_safe}/{new_page_safe}"
-                                ).replace(
-                                    f"/{old_name_without_ext}__",
-                                    f"/{new_name_without_ext}__"
-                                )
+                                # Check if this is a direct file (not in subfolder)
+                                relative_path = old_file[len(old_archived_prefix):]
+                                if relative_path.startswith('.') or (relative_path.startswith('__') and '/' not in relative_path):
+                                    # This is the page file with extension or timestamp
+                                    # e.g., .png or __202511201445.pdf
+                                    new_file = f"{base_prefix}{new_channel_safe}/{new_folder_safe}/{new_name_without_ext}{relative_path}"
 
-                                if move_r2_object(old_file, new_file):
-                                    logger.info(f"✓ Renamed archived page: {old_file} → {new_file}")
+                                    if move_r2_object(old_file, new_file):
+                                        logger.info(f"✓ Renamed archived page: {old_file} → {new_file}")
 
                         # 2. Rename the additional content folder
                         old_folder_path = f"{old_base_path}/{old_name_without_ext}"
@@ -760,7 +782,11 @@ def register_hierarchy_routes(api_contents_bp):
 
                             # List all objects in this folder
                             objects = list_r2_objects(old_prefix)
-                            logger.info(f"  Found {len(objects)} objects with prefix: {old_prefix}")
+                            logger.info(f"  Checking prefix: {old_prefix}")
+                            logger.info(f"  Found {len(objects)} objects")
+
+                            if len(objects) > 0:
+                                logger.info(f"  Sample files: {objects[:3]}")
 
                             for old_key in objects:
                                 # Replace the old folder path with new folder path
