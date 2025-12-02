@@ -14,7 +14,13 @@ from extensions import db
 from models import ContentRelPages, ContentRelFolders, ContentRelChannels, ContentRelPageDetails
 from services.content_hierarchy_service import ContentHierarchyService
 from log_config import get_content_logger
-from blueprints.contents.r2_utils import rename_hierarchy_r2_objects, generate_r2_object_key
+from blueprints.contents.r2_utils import (
+    rename_hierarchy_r2_objects,
+    generate_r2_object_key,
+    move_r2_object,
+    list_r2_objects,
+    check_r2_object_exists
+)
 
 # Initialize logger
 logger = get_content_logger()
@@ -619,13 +625,15 @@ def register_hierarchy_routes(api_contents_bp):
             old_page_name = page.name
             old_folder_id = page.folder_id
 
-            # Get old folder and channel for path construction
+            # Get old folder and channel names for R2 path construction
             old_folder = ContentRelFolders.query.get(old_folder_id)
             if old_folder:
                 old_channel = ContentRelChannels.query.get(old_folder.channel_id)
-                old_parent_path = f"{old_channel.name}/{old_folder.name}" if old_channel else old_folder.name
+                old_channel_name = old_channel.name if old_channel else ''
+                old_folder_name = old_folder.name
             else:
-                old_parent_path = ''
+                old_channel_name = ''
+                old_folder_name = ''
 
             # Update name if provided
             if 'name' in data:
@@ -648,7 +656,6 @@ def register_hierarchy_routes(api_contents_bp):
                 page.name = new_name
 
             # Update folder if provided
-            new_parent_path = old_parent_path
             if 'folder_id' in data:
                 new_folder_id = int(data['folder_id'])
 
@@ -663,57 +670,118 @@ def register_hierarchy_routes(api_contents_bp):
 
                 page.folder_id = new_folder_id
 
-                # Get new parent path
-                new_channel = ContentRelChannels.query.get(new_folder.channel_id)
-                new_parent_path = f"{new_channel.name}/{new_folder.name}" if new_channel else new_folder.name
-
             page.updated_at = datetime.datetime.now()
 
             db.session.commit()
 
             logger.info(f"Page {page_id} updated: name='{page.name}', folder_id={page.folder_id}")
 
+            # Get new folder and channel names for R2 path construction
+            new_folder = ContentRelFolders.query.get(page.folder_id)
+            if new_folder:
+                new_channel = ContentRelChannels.query.get(new_folder.channel_id)
+                new_channel_name = new_channel.name if new_channel else ''
+                new_folder_name = new_folder.name
+            else:
+                new_channel_name = ''
+                new_folder_name = ''
+
             # Rename R2 objects if name or folder changed
             if old_page_name != page.name or old_folder_id != page.folder_id:
-                r2_result = rename_hierarchy_r2_objects(
-                    old_name=old_page_name,
-                    new_name=page.name,
-                    hierarchy_type='page',
-                    parent_path=old_parent_path if old_folder_id == page.folder_id else new_parent_path
-                )
+                import os as os_module
 
-                if not r2_result['success']:
-                    logger.warning(f"R2 rename had errors for page {page_id}: {r2_result['errors']}")
+                if old_channel_name and old_folder_name:
+                    try:
+                        # Sanitize names for R2 paths (replace / with ⁄)
+                        old_channel_safe = old_channel_name.replace('/', '⁄').replace('\\', '⁄')
+                        old_folder_safe = old_folder_name.replace('/', '⁄').replace('\\', '⁄')
+                        old_page_safe = old_page_name.replace('/', '⁄').replace('\\', '⁄')
 
-                # Update object_id for the page and its details
-                try:
-                    # Update page object_id
-                    new_object_id = generate_r2_object_key(
-                        file_id=page.id,
-                        filename=page.name,
-                        is_page_detail=False
-                    )
-                    page.object_id = new_object_id
+                        new_channel_safe = new_channel_name.replace('/', '⁄').replace('\\', '⁄')
+                        new_folder_safe = new_folder_name.replace('/', '⁄').replace('\\', '⁄')
+                        new_page_safe = page.name.replace('/', '⁄').replace('\\', '⁄')
 
-                    # Also update page details
-                    details = ContentRelPageDetails.query.filter_by(
-                        page_id=page.id,
-                        is_deleted=False
-                    ).all()
+                        # Construct old and new R2 paths
+                        old_base_path = f"beps-contents/{old_channel_safe}/{old_folder_safe}"
+                        new_base_path = f"beps-contents/{new_channel_safe}/{new_folder_safe}"
 
-                    for detail in details:
-                        new_detail_object_id = generate_r2_object_key(
-                            file_id=detail.id,
-                            filename=detail.name,
-                            is_page_detail=True
-                        )
-                        detail.object_id = new_detail_object_id
+                        # Get file name without extension for folder operations
+                        old_name_without_ext = os_module.path.splitext(old_page_safe)[0]
+                        new_name_without_ext = os_module.path.splitext(new_page_safe)[0]
 
-                    db.session.commit()
-                    logger.info(f"Updated object_id fields for page {page_id}")
-                except Exception as e:
-                    logger.error(f"Error updating object_id fields: {str(e)}")
-                    # Don't fail the request, just log the error
+                        logger.info(f"Renaming R2 objects for page {page_id}:")
+                        logger.info(f"  Old: {old_base_path}/{old_page_safe}")
+                        logger.info(f"  New: {new_base_path}/{new_page_safe}")
+
+                        # 1. Rename the page file itself
+                        old_page_file = f"{old_base_path}/{old_page_safe}"
+                        new_page_file = f"{new_base_path}/{new_page_safe}"
+
+                        if check_r2_object_exists(old_page_file):
+                            if move_r2_object(old_page_file, new_page_file):
+                                logger.info(f"✓ Renamed page file: {old_page_file} → {new_page_file}")
+                            else:
+                                logger.error(f"✗ Failed to rename page file: {old_page_file}")
+                        else:
+                            logger.warning(f"⚠ Page file not found in R2: {old_page_file}")
+
+                        # Also check pending and archived versions of the page file
+                        for prefix in ['beps-archive/pending/', 'beps-archive/old/']:
+                            old_archived_file = old_page_file.replace('beps-contents/', prefix)
+
+                            # List files with this prefix (archived files have timestamp suffixes)
+                            archived_files = list_r2_objects(old_archived_file.rsplit('.', 1)[0])
+
+                            for old_file in archived_files:
+                                # Reconstruct new path maintaining the timestamp
+                                new_file = old_file.replace(
+                                    f"{prefix}{old_channel_safe}/{old_folder_safe}/{old_page_safe}",
+                                    f"{prefix}{new_channel_safe}/{new_folder_safe}/{new_page_safe}"
+                                ).replace(
+                                    f"/{old_name_without_ext}__",
+                                    f"/{new_name_without_ext}__"
+                                )
+
+                                if move_r2_object(old_file, new_file):
+                                    logger.info(f"✓ Renamed archived page: {old_file} → {new_file}")
+
+                        # 2. Rename the additional content folder
+                        old_folder_path = f"{old_base_path}/{old_name_without_ext}"
+                        new_folder_path = f"{new_base_path}/{new_name_without_ext}"
+
+                        logger.info(f"Looking for additional content:")
+                        logger.info(f"  Old folder: {old_folder_path}/")
+                        logger.info(f"  New folder: {new_folder_path}/")
+
+                        # Check all three storage locations
+                        total_renamed = 0
+                        for base_prefix in ['beps-contents/', 'beps-archive/pending/', 'beps-archive/old/']:
+                            old_prefix = f"{base_prefix}{old_channel_safe}/{old_folder_safe}/{old_name_without_ext}/"
+
+                            # List all objects in this folder
+                            objects = list_r2_objects(old_prefix)
+                            logger.info(f"  Found {len(objects)} objects with prefix: {old_prefix}")
+
+                            for old_key in objects:
+                                # Replace the old folder path with new folder path
+                                new_key = old_key.replace(
+                                    f"{base_prefix}{old_channel_safe}/{old_folder_safe}/{old_name_without_ext}/",
+                                    f"{base_prefix}{new_channel_safe}/{new_folder_safe}/{new_name_without_ext}/"
+                                )
+
+                                if move_r2_object(old_key, new_key):
+                                    logger.info(f"✓ Renamed additional content: {old_key} → {new_key}")
+                                    total_renamed += 1
+                                else:
+                                    logger.error(f"✗ Failed to rename: {old_key}")
+
+                        logger.info(f"Successfully renamed {total_renamed} additional content files")
+
+                    except Exception as e:
+                        logger.error(f"Error renaming R2 objects for page {page_id}: {str(e)}", exc_info=True)
+                        # Don't fail the request, just log the error
+                else:
+                    logger.warning(f"Missing hierarchy info for page {page_id}, skipping R2 rename")
 
             return jsonify({
                 'success': True,
