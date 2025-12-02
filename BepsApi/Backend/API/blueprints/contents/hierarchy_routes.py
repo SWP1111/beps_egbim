@@ -15,8 +15,6 @@ from models import ContentRelPages, ContentRelFolders, ContentRelChannels, Conte
 from services.content_hierarchy_service import ContentHierarchyService
 from log_config import get_content_logger
 from blueprints.contents.r2_utils import (
-    rename_hierarchy_r2_objects,
-    generate_r2_object_key,
     move_r2_object,
     list_r2_objects,
     check_r2_object_exists
@@ -615,9 +613,9 @@ def register_hierarchy_routes(api_contents_bp):
                         new_folder_safe = new_folder_name.replace('/', '⁄').replace('\\', '⁄')
                         new_page_safe = page.name.replace('/', '⁄').replace('\\', '⁄')
 
-                        # Construct old and new R2 paths
-                        old_base_path = f"beps-contents/{old_channel_safe}/{old_folder_safe}"
-                        new_base_path = f"beps-contents/{new_channel_safe}/{new_folder_safe}"
+                        # Construct old and new R2 paths (WITHOUT bucket prefix)
+                        old_base_path = f"{old_channel_safe}/{old_folder_safe}"
+                        new_base_path = f"{new_channel_safe}/{new_folder_safe}"
 
                         # Get file name without extension for folder operations
                         old_name_without_ext = os_module.path.splitext(old_page_safe)[0]
@@ -663,23 +661,10 @@ def register_hierarchy_routes(api_contents_bp):
                         if not page_file_found:
                             logger.warning(f"⚠ No page file found with prefix: {old_page_prefix}")
 
-                        # Also check pending and archived versions of the page file
-                        for base_prefix in ['beps-archive/pending/', 'beps-archive/old/']:
-                            old_archived_prefix = f"{base_prefix}{old_channel_safe}/{old_folder_safe}/{old_name_without_ext}"
-
-                            # List files with this prefix (archived files may have timestamp suffixes)
-                            archived_files = list_r2_objects(old_archived_prefix)
-
-                            for old_file in archived_files:
-                                # Check if this is a direct file (not in subfolder)
-                                relative_path = old_file[len(old_archived_prefix):]
-                                if relative_path.startswith('.') or (relative_path.startswith('__') and '/' not in relative_path):
-                                    # This is the page file with extension or timestamp
-                                    # e.g., .png or __202511201445.pdf
-                                    new_file = f"{base_prefix}{new_channel_safe}/{new_folder_safe}/{new_name_without_ext}{relative_path}"
-
-                                    if move_r2_object(old_file, new_file):
-                                        logger.info(f"✓ Renamed archived page: {old_file} → {new_file}")
+                        # NOTE: We do NOT rename pending/archived versions because:
+                        # 1. Pending files move to current location during approval (separate workflow)
+                        # 2. Archived files are historical snapshots and should keep original names
+                        # 3. Only the current active file needs to be renamed
 
                         # 2. Rename the additional content folder
                         old_folder_path = f"{old_base_path}/{old_name_without_ext}"
@@ -689,31 +674,30 @@ def register_hierarchy_routes(api_contents_bp):
                         logger.info(f"  Old folder: {old_folder_path}/")
                         logger.info(f"  New folder: {new_folder_path}/")
 
-                        # Check all three storage locations
+                        # Only rename additional content in the current location (not pending/archived)
                         total_renamed = 0
-                        for base_prefix in ['beps-contents/', 'beps-archive/pending/', 'beps-archive/old/']:
-                            old_prefix = f"{base_prefix}{old_channel_safe}/{old_folder_safe}/{old_name_without_ext}/"
+                        old_prefix = f"{old_folder_path}/"
 
-                            # List all objects in this folder
-                            objects = list_r2_objects(old_prefix)
-                            logger.info(f"  Checking prefix: {old_prefix}")
-                            logger.info(f"  Found {len(objects)} objects")
+                        # List all objects in this folder
+                        objects = list_r2_objects(old_prefix)
+                        logger.info(f"  Checking prefix: {old_prefix}")
+                        logger.info(f"  Found {len(objects)} objects")
 
-                            if len(objects) > 0:
-                                logger.info(f"  Sample files: {objects[:3]}")
+                        if len(objects) > 0:
+                            logger.info(f"  Sample files: {objects[:3]}")
 
-                            for old_key in objects:
-                                # Replace the old folder path with new folder path
-                                new_key = old_key.replace(
-                                    f"{base_prefix}{old_channel_safe}/{old_folder_safe}/{old_name_without_ext}/",
-                                    f"{base_prefix}{new_channel_safe}/{new_folder_safe}/{new_name_without_ext}/"
-                                )
+                        for old_key in objects:
+                            # Replace the old folder path with new folder path
+                            new_key = old_key.replace(
+                                f"{old_folder_path}/",
+                                f"{new_folder_path}/"
+                            )
 
-                                if move_r2_object(old_key, new_key):
-                                    logger.info(f"✓ Renamed additional content: {old_key} → {new_key}")
-                                    total_renamed += 1
-                                else:
-                                    logger.error(f"✗ Failed to rename: {old_key}")
+                            if move_r2_object(old_key, new_key):
+                                logger.info(f"✓ Renamed additional content: {old_key} → {new_key}")
+                                total_renamed += 1
+                            else:
+                                logger.error(f"✗ Failed to rename: {old_key}")
 
                         logger.info(f"Successfully renamed {total_renamed} additional content files")
 

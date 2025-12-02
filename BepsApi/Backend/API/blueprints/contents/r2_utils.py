@@ -304,8 +304,8 @@ def generate_pending_path(original_path):
     """
     Generate pending content path from original path
 
-    Original: beps-contents/{channel}/{category}/{page}.png
-    Pending:  beps-content-archive/pending/{channel}/{category}/{page}.png
+    Original: {channel}/{category}/{page}.png (in beps-contents bucket)
+    Pending:  pending/{channel}/{category}/{page}.png (in archive bucket)
 
     Args:
         original_path: Original R2 object key
@@ -313,20 +313,16 @@ def generate_pending_path(original_path):
     Returns:
         Pending path
     """
-    # Replace the base prefix
-    if original_path.startswith('beps-contents/'):
-        return original_path.replace('beps-contents/', 'beps-archive/pending/', 1)
-    else:
-        # Fallback: add pending prefix
-        return f'beps-archive/pending/{original_path}'
+    # Add pending prefix
+    return f'pending/{original_path}'
 
 
 def generate_archived_path(original_path, timestamp_suffix):
     """
     Generate archived content path from original path
 
-    Original: beps-contents/{channel}/{category}/{page}.png
-    Archived: beps-archive/old/{channel}/{category}/{page}__{timestamp}.png
+    Original: {channel}/{category}/{page}.png (in beps-contents bucket)
+    Archived: old/{channel}/{category}/{page}__{timestamp}.png (in archive bucket)
 
     Args:
         original_path: Original R2 object key
@@ -347,13 +343,11 @@ def generate_archived_path(original_path, timestamp_suffix):
     # Generate archived filename with timestamp
     archived_filename = f"{name}__{timestamp_suffix}{ext}"
 
-    # Replace base prefix and reconstruct path
-    if dirname.startswith('beps-contents/'):
-        archived_dirname = dirname.replace('beps-contents/', 'beps-archive/old/', 1)
+    # Add 'old' prefix
+    if dirname:
+        return f"old/{dirname}/{archived_filename}"
     else:
-        archived_dirname = f'beps-archive/old/{dirname}'
-
-    return f"{archived_dirname}/{archived_filename}"
+        return f"old/{archived_filename}"
 
 
 def get_r2_object_metadata(object_key):
