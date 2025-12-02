@@ -382,10 +382,82 @@ def register_hierarchy_routes(api_contents_bp):
 
             logger.info(f"Channel {channel_id} name updated to '{new_name}'")
 
-            # NOTE: We don't rename R2 files when channel name changes because:
-            # 1. R2 paths are constructed dynamically from current hierarchy
-            # 2. Moving thousands of files is expensive and unnecessary
-            # 3. Only page name changes require actual R2 file renames
+            # Rename R2 objects if channel name changed
+            if old_name != new_name:
+                import os as os_module
+
+                try:
+                    logger.info(f"[R2 CHANNEL RENAME] Starting for channel {channel_id}")
+                    logger.info(f"[R2 CHANNEL RENAME] Channel: '{old_name}' → '{new_name}'")
+
+                    # Sanitize names
+                    old_channel_safe = old_name.replace('/', '⁄').replace('\\', '⁄')
+                    new_channel_safe = new_name.replace('/', '⁄').replace('\\', '⁄')
+
+                    # Get all folders under this channel
+                    folders = ContentRelFolders.query.filter_by(
+                        channel_id=channel_id,
+                        parent_id=None,  # Top-level folders
+                        is_deleted=False
+                    ).all()
+
+                    logger.info(f"[R2 CHANNEL RENAME] Found {len(folders)} folders")
+
+                    total_files_renamed = 0
+
+                    for folder in folders:
+                        folder_safe = folder.name.replace('/', '⁄').replace('\\', '⁄')
+
+                        # Get all pages under this folder
+                        pages = ContentRelPages.query.filter_by(
+                            folder_id=folder.id,
+                            is_deleted=False
+                        ).all()
+
+                        logger.info(f"[R2 CHANNEL RENAME] Folder '{folder.name}': {len(pages)} pages")
+
+                        for page in pages:
+                            page_safe = page.name.replace('/', '⁄').replace('\\', '⁄')
+                            page_name_without_ext = os_module.path.splitext(page_safe)[0]
+
+                            # Old and new paths
+                            old_path = f"{old_channel_safe}/{folder_safe}"
+                            new_path = f"{new_channel_safe}/{folder_safe}"
+
+                            # 1. Rename the page file
+                            old_page_prefix = f"{old_path}/{page_name_without_ext}"
+                            page_files = list_r2_objects(old_page_prefix)
+
+                            for old_file in page_files:
+                                remainder = old_file[len(old_page_prefix):]
+                                if remainder.startswith('.') and '/' not in remainder:
+                                    # Direct page file
+                                    file_ext = os_module.path.splitext(old_file)[1]
+                                    new_page_file = f"{new_path}/{page_name_without_ext}{file_ext}"
+
+                                    if move_r2_object(old_file, new_page_file):
+                                        logger.info(f"✓ Renamed: {old_file} → {new_page_file}")
+                                        total_files_renamed += 1
+
+                            # 2. Rename additional content folder
+                            old_folder_prefix = f"{old_path}/{page_name_without_ext}/"
+                            new_folder_path = f"{new_path}/{page_name_without_ext}"
+
+                            objects = list_r2_objects(old_folder_prefix)
+                            for old_key in objects:
+                                new_key = old_key.replace(
+                                    f"{old_path}/{page_name_without_ext}/",
+                                    f"{new_folder_path}/"
+                                )
+                                if move_r2_object(old_key, new_key):
+                                    logger.info(f"✓ Renamed: {old_key} → {new_key}")
+                                    total_files_renamed += 1
+
+                    logger.info(f"[R2 CHANNEL RENAME] Completed. Renamed {total_files_renamed} files")
+
+                except Exception as e:
+                    logger.error(f"Error renaming R2 objects for channel {channel_id}: {str(e)}", exc_info=True)
+                    # Don't fail the request, just log the error
 
             return jsonify({
                 'success': True,
@@ -481,10 +553,73 @@ def register_hierarchy_routes(api_contents_bp):
 
             logger.info(f"Folder {folder_id} updated: name='{folder.name}', channel_id={folder.channel_id}")
 
-            # NOTE: We don't rename R2 files when folder name or parent changes because:
-            # 1. R2 paths are constructed dynamically from current hierarchy
-            # 2. Folder is just organizational structure
-            # 3. Only page name changes require actual R2 file renames
+            # Rename R2 objects if folder name or parent channel changed
+            if old_folder_name != folder.name or old_channel_id != folder.channel_id:
+                import os as os_module
+
+                try:
+                    logger.info(f"[R2 FOLDER RENAME] Starting for folder {folder_id}")
+                    logger.info(f"[R2 FOLDER RENAME] Folder: '{old_folder_name}' → '{folder.name}'")
+                    logger.info(f"[R2 FOLDER RENAME] Channel: '{old_channel_name}' → '{new_channel_name}'")
+
+                    # Sanitize names
+                    old_channel_safe = old_channel_name.replace('/', '⁄').replace('\\', '⁄')
+                    old_folder_safe = old_folder_name.replace('/', '⁄').replace('\\', '⁄')
+                    new_channel_safe = new_channel_name.replace('/', '⁄').replace('\\', '⁄')
+                    new_folder_safe = folder.name.replace('/', '⁄').replace('\\', '⁄')
+
+                    # Get all pages under this folder
+                    pages = ContentRelPages.query.filter_by(
+                        folder_id=folder_id,
+                        is_deleted=False
+                    ).all()
+
+                    logger.info(f"[R2 FOLDER RENAME] Found {len(pages)} pages to rename")
+
+                    total_files_renamed = 0
+
+                    for page in pages:
+                        page_safe = page.name.replace('/', '⁄').replace('\\', '⁄')
+                        page_name_without_ext = os_module.path.splitext(page_safe)[0]
+
+                        # Old and new paths
+                        old_path = f"{old_channel_safe}/{old_folder_safe}"
+                        new_path = f"{new_channel_safe}/{new_folder_safe}"
+
+                        # 1. Rename the page file
+                        old_page_prefix = f"{old_path}/{page_name_without_ext}"
+                        page_files = list_r2_objects(old_page_prefix)
+
+                        for old_file in page_files:
+                            remainder = old_file[len(old_page_prefix):]
+                            if remainder.startswith('.') and '/' not in remainder:
+                                # Direct page file
+                                file_ext = os_module.path.splitext(old_file)[1]
+                                new_page_file = f"{new_path}/{page_name_without_ext}{file_ext}"
+
+                                if move_r2_object(old_file, new_page_file):
+                                    logger.info(f"✓ Renamed: {old_file} → {new_page_file}")
+                                    total_files_renamed += 1
+
+                        # 2. Rename additional content folder
+                        old_folder_prefix = f"{old_path}/{page_name_without_ext}/"
+                        new_folder_path = f"{new_path}/{page_name_without_ext}"
+
+                        objects = list_r2_objects(old_folder_prefix)
+                        for old_key in objects:
+                            new_key = old_key.replace(
+                                f"{old_path}/{page_name_without_ext}/",
+                                f"{new_folder_path}/"
+                            )
+                            if move_r2_object(old_key, new_key):
+                                logger.info(f"✓ Renamed: {old_key} → {new_key}")
+                                total_files_renamed += 1
+
+                    logger.info(f"[R2 FOLDER RENAME] Completed. Renamed {total_files_renamed} files")
+
+                except Exception as e:
+                    logger.error(f"Error renaming R2 objects for folder {folder_id}: {str(e)}", exc_info=True)
+                    # Don't fail the request, just log the error
 
             return jsonify({
                 'success': True,
