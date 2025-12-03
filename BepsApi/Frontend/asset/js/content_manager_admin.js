@@ -1894,6 +1894,10 @@ function showFileNamingModal(prefix, suffix, placeholder, onConfirm) {
  * @param {string} currentName - Current name of the item
  * @param {number} parentId - Current parent ID (for folders and pages)
  * @param {string} parentName - Current parent name (for display)
+ *
+ * Note: For pages, the user only edits the filename WITHOUT extension.
+ *       The extension is automatically preserved from the original name.
+ *       Example: "001_개요.png" → user sees "001_개요" → edits to "002_요약" → saved as "002_요약.png"
  */
 async function openEditModal(type, id, currentName, parentId = null, parentName = null) {
     const modal = document.getElementById('content-edit-modal');
@@ -1916,8 +1920,20 @@ async function openEditModal(type, id, currentName, parentId = null, parentName 
     };
     titleEl.textContent = titles[type] || '항목 수정';
 
-    // Set current name
-    nameInput.value = currentName;
+    // For pages, strip extension and store it separately
+    let displayName = currentName;
+    let originalExtension = '';
+    if (type === 'page') {
+        const lastDotIndex = currentName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            displayName = currentName.substring(0, lastDotIndex);
+            originalExtension = currentName.substring(lastDotIndex); // includes the dot
+        }
+    }
+
+    // Set current name (without extension for pages)
+    nameInput.value = displayName;
+    nameInput.dataset.originalExtension = originalExtension; // Store extension in data attribute
     errorDiv.style.display = 'none';
 
     // Show/hide parent selection based on type
@@ -1946,12 +1962,17 @@ async function openEditModal(type, id, currentName, parentId = null, parentName 
 
     // Event handlers
     const handleConfirm = async () => {
-        const newName = nameInput.value.trim();
+        let newName = nameInput.value.trim();
 
         if (!newName) {
             errorDiv.textContent = '이름을 입력해주세요.';
             errorDiv.style.display = 'block';
             return;
+        }
+
+        // For pages, add back the original extension
+        if (type === 'page' && nameInput.dataset.originalExtension) {
+            newName = newName + nameInput.dataset.originalExtension;
         }
 
         // Get selected parent (if applicable)

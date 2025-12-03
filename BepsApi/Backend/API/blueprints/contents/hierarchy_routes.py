@@ -678,10 +678,11 @@ def register_hierarchy_routes(api_contents_bp):
         4. If any step fails, abort and rollback
 
         Note: Page names in DB are stored WITH extensions (e.g., "001_개요.png")
+              Frontend sends full name with extension (user only edits filename, extension auto-appended)
 
         Request body:
         {
-            "name": "New Page Name",
+            "name": "New Page Name.png",  # Full name with extension (frontend handles this)
             "folder_id": 123  # Optional: change parent folder
         }
         """
