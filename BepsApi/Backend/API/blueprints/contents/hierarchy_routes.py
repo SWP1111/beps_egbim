@@ -673,16 +673,23 @@ def register_hierarchy_routes(api_contents_bp):
 
         Process:
         1. Validate new name and folder
-        2. Rename R2 files first
-        3. If R2 rename succeeds, update database
-        4. If any step fails, abort and rollback
+        2. Automatically preserve the original file extension
+        3. Rename R2 files first
+        4. If R2 rename succeeds, update database
+        5. If any step fails, abort and rollback
 
         Note: Page names in DB are stored WITH extensions (e.g., "001_개요.png")
-              Frontend sends full name with extension (user only edits filename, extension auto-appended)
+              Backend automatically preserves the original extension
+              Frontend sends name without extension, backend adds original extension back
+
+              Example:
+              - Old name: "001_개요.png"
+              - User sends: "002_요약" or "002_요약.jpg" (extension ignored)
+              - Saved as: "002_요약.png" (original extension preserved)
 
         Request body:
         {
-            "name": "New Page Name.png",  # Full name with extension (frontend handles this)
+            "name": "New Page Name",  # Without extension - original extension will be preserved
             "folder_id": 123  # Optional: change parent folder
         }
         """
@@ -717,11 +724,21 @@ def register_hierarchy_routes(api_contents_bp):
 
             # Determine new values
             import os as os_module
-            new_name = data.get('name', page.name).strip()
+            new_name_raw = data.get('name', page.name).strip()
             new_folder_id = int(data.get('folder_id', page.folder_id))
 
+            # IMPORTANT: Preserve the original file extension
+            # Extract extension from old name
+            old_name_base, old_extension = os_module.path.splitext(old_page_name)
+            # Strip any extension user might have typed
+            new_name_base = os_module.path.splitext(new_name_raw)[0]
+            # Combine new name with old extension
+            new_name = new_name_base + old_extension
+
+            logger.info(f"Extension preservation: '{new_name_raw}' → '{new_name}' (extension: '{old_extension}')")
+
             # Validate new name
-            if 'name' in data and not new_name:
+            if 'name' in data and not new_name_base:
                 return jsonify({'error': 'Name cannot be empty'}), 400
 
             # Check if name already exists in DB
