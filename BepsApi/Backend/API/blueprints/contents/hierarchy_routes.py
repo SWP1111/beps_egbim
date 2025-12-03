@@ -677,6 +677,8 @@ def register_hierarchy_routes(api_contents_bp):
         3. If R2 rename succeeds, update database
         4. If any step fails, abort and rollback
 
+        Note: Page names in DB are stored WITH extensions (e.g., "001_개요.png")
+
         Request body:
         {
             "name": "New Page Name",
@@ -713,6 +715,7 @@ def register_hierarchy_routes(api_contents_bp):
                 old_folder_name = ''
 
             # Determine new values
+            import os as os_module
             new_name = data.get('name', page.name).strip()
             new_folder_id = int(data.get('folder_id', page.folder_id))
 
@@ -747,8 +750,6 @@ def register_hierarchy_routes(api_contents_bp):
 
             # STEP 1: Rename R2 objects FIRST (before DB commit)
             if old_page_name != new_name or old_folder_id != new_folder_id:
-                import os as os_module
-
                 if not (old_channel_name and old_folder_name and new_channel_name and new_folder_name):
                     return jsonify({'error': 'Missing hierarchy information'}), 400
 
