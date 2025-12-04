@@ -278,8 +278,32 @@ def register_additional_content_routes(api_contents_bp):
                 }), 403
 
             # Delete from R2 (original location)
-            if additional.object_id:
-                delete_r2_object(additional.object_id)
+            object_key_to_delete = additional.object_id
+
+            # If object_id is None, construct path from hierarchy
+            if not object_key_to_delete:
+                from models import ContentRelPages, ContentRelFolders, ContentRelChannels
+
+                page = ContentRelPages.query.get(additional.page_id)
+                if page:
+                    folder = ContentRelFolders.query.get(page.folder_id)
+                    if folder:
+                        channel = ContentRelChannels.query.get(folder.channel_id)
+                        if channel:
+                            # Sanitize names
+                            channel_safe = channel.name.replace('/', '⁄').replace('\\', '⁄')
+                            folder_safe = folder.name.replace('/', '⁄').replace('\\', '⁄')
+                            page_safe = page.name.replace('/', '⁄').replace('\\', '⁄')
+
+                            # Get page name without extension for folder
+                            page_name_no_ext = os.path.splitext(page_safe)[0]
+
+                            # Build path: {channel}/{folder}/{page_folder}/{additional_filename}
+                            object_key_to_delete = f"{channel_safe}/{folder_safe}/{page_name_no_ext}/{additional.name}"
+                            logger.info(f"Constructed R2 path for deletion: {object_key_to_delete}")
+
+            if object_key_to_delete:
+                delete_r2_object(object_key_to_delete)
 
             # Delete pending if exists
             pending = PendingContent.query.filter_by(
@@ -359,18 +383,42 @@ def register_additional_content_routes(api_contents_bp):
                     logger.warning(f"Pending object_key {pending.object_key} does not exist in R2")
 
             if not download_key:
-                # Use the stored object_id from ContentRelPageDetails
-                if additional.object_id and check_r2_object_exists(additional.object_id):
+                # Build R2 path from hierarchy if object_id is not set (legacy records)
+                object_key_to_check = additional.object_id
+
+                if not object_key_to_check:
+                    # Construct path from hierarchy
+                    from models import ContentRelPages, ContentRelFolders, ContentRelChannels
+
+                    page = ContentRelPages.query.get(additional.page_id)
+                    if page:
+                        folder = ContentRelFolders.query.get(page.folder_id)
+                        if folder:
+                            channel = ContentRelChannels.query.get(folder.channel_id)
+                            if channel:
+                                # Sanitize names
+                                channel_safe = channel.name.replace('/', '⁄').replace('\\', '⁄')
+                                folder_safe = folder.name.replace('/', '⁄').replace('\\', '⁄')
+                                page_safe = page.name.replace('/', '⁄').replace('\\', '⁄')
+
+                                # Get page name without extension for folder
+                                page_name_no_ext = os.path.splitext(page_safe)[0]
+
+                                # Build path: {channel}/{folder}/{page_folder}/{additional_filename}
+                                object_key_to_check = f"{channel_safe}/{folder_safe}/{page_name_no_ext}/{additional.name}"
+                                logger.info(f"Constructed R2 path from hierarchy: {object_key_to_check}")
+
+                if object_key_to_check and check_r2_object_exists(object_key_to_check):
                     # Original content exists
-                    download_key = additional.object_id
+                    download_key = object_key_to_check
                     result['is_pending'] = False
                     # Get file size from R2 metadata
-                    metadata = get_r2_object_metadata(additional.object_id)
+                    metadata = get_r2_object_metadata(object_key_to_check)
                     if metadata:
                         file_size = metadata.get('size', 0)
                     logger.info(f"Using original content: key={download_key}, size={file_size}")
                 else:
-                    logger.warning(f"Content does not exist in R2: {additional.object_id}")
+                    logger.warning(f"Content does not exist in R2: {object_key_to_check}")
 
             result['file_size'] = file_size
 

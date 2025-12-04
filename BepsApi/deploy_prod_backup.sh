@@ -9,7 +9,7 @@
 # ---------- 설정 ----------
 PROD_USER="user"
 PROD_HOST="1.234.37.173"
-PROD_PORT="22"
+PROD_PORT="10022"
 PROD_BASE="/home/user/service/BepsApi"
 BACKUP_BASE="/home/user/service/BepsApi_backup_$(date +%Y%m%d%H%M)"
 TEST_BASE="/home/user_ccp/service/BepsApi"
