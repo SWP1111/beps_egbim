@@ -20,64 +20,64 @@ def get_statistics_user_data(period_type, period_value, filter_value):
     CVH = aliased(ContentViewingHistory)
     Folder = aliased(ContentRelFolders)
     Page = aliased(ContentRelPages)
-    Detail = aliased(ContentRelPageDetails)
+    # Detail = aliased(ContentRelPageDetails)
 
-    # file_type이 detail인 것만 필터링
-    subq_detail = db.session.query(
-        ContentViewingHistory.file_id,
-        func.max(ContentViewingHistory.start_time).label('latest_time')
-        ).filter(
-            ContentViewingHistory.user_id == filter_value,
-            ContentViewingHistory.file_type == 'detail',
-            ContentViewingHistory.start_time >= utc_start_dt,
-            ContentViewingHistory.start_time <= utc_end_dt
-        ).group_by(
-            ContentViewingHistory.file_id
-        ).subquery()
+    # file_type이 detail인 것만 필터링 - 현재는 사용 안함
+    # subq_detail = db.session.query(
+    #     ContentViewingHistory.file_id,
+    #     func.max(ContentViewingHistory.start_time).label('latest_time')
+    #     ).filter(
+    #         ContentViewingHistory.user_id == filter_value,
+    #         ContentViewingHistory.file_type == 'detail',
+    #         ContentViewingHistory.start_time >= utc_start_dt,
+    #         ContentViewingHistory.start_time <= utc_end_dt
+    #     ).group_by(
+    #         ContentViewingHistory.file_id
+    #     ).subquery()
         
-    query_dtail = db.session.query(
-        Users.company,
-        Users.department,
-        Users.id.label('user_id'),
-        Users.name.label('user_name'),
-        ContentRelChannels.name.label('channel_name'),
-        Folder.name.label('folder_name'),
-        Page.name.label('file_name'),
-        Detail.name.label('detail_name'),
-        CVH.start_time,
-        CVH.end_time,
-        CVH.stay_duration,
-        CVH.ip_address
-    ).join(
-        CVH, CVH.user_id == Users.id
-    ).join(
-        subq_detail, (CVH.file_id == subq_detail.c.file_id) & 
-                     (CVH.start_time == subq_detail.c.latest_time)
-    ).join(
-        Detail, CVH.file_id == Detail.id
-    ).join(
-        Page, Detail.page_id == Page.id
-    ).join(
-        Folder, Page.folder_id == Folder.id
-    ).join(
-        ContentRelChannels, Folder.channel_id == ContentRelChannels.id
-    ).filter(
-        Folder.parent_id == None,
-        Users.id == filter_value
-    ).group_by(
-        Users.company,
-        Users.department,
-        Users.id,
-        Users.name,
-        ContentRelChannels.name,
-        Folder.name,
-        Page.name,
-        Detail.name,
-        CVH.start_time,
-        CVH.end_time,
-        CVH.stay_duration,
-        CVH.ip_address
-    ).all()
+    # query_dtail = db.session.query(
+    #     Users.company,
+    #     Users.department,
+    #     Users.id.label('user_id'),
+    #     Users.name.label('user_name'),
+    #     ContentRelChannels.name.label('channel_name'),
+    #     Folder.name.label('folder_name'),
+    #     Page.name.label('file_name'),
+    #     Detail.name.label('detail_name'),
+    #     CVH.start_time,
+    #     CVH.end_time,
+    #     CVH.stay_duration,
+    #     CVH.ip_address
+    # ).join(
+    #     CVH, CVH.user_id == Users.id
+    # ).join(
+    #     subq_detail, (CVH.file_id == subq_detail.c.file_id) & 
+    #                  (CVH.start_time == subq_detail.c.latest_time)
+    # ).join(
+    #     Detail, CVH.file_id == Detail.id
+    # ).join(
+    #     Page, Detail.page_id == Page.id
+    # ).join(
+    #     Folder, Page.folder_id == Folder.id
+    # ).join(
+    #     ContentRelChannels, Folder.channel_id == ContentRelChannels.id
+    # ).filter(
+    #     Folder.parent_id == None,
+    #     Users.id == filter_value
+    # ).group_by(
+    #     Users.company,
+    #     Users.department,
+    #     Users.id,
+    #     Users.name,
+    #     ContentRelChannels.name,
+    #     Folder.name,
+    #     Page.name,
+    #     Detail.name,
+    #     CVH.start_time,
+    #     CVH.end_time,
+    #     CVH.stay_duration,
+    #     CVH.ip_address
+    # ).all()
 
 
     # file_type이 page인 것만 필터링
@@ -142,14 +142,14 @@ def get_statistics_user_data(period_type, period_value, filter_value):
         ).all()
     
     page_rows = [row_to_dict(row, 'page', local_tz) for row in query]
-    detail_rows = [row_to_dict(row, 'detail', local_tz) for row in query_dtail]
+    # detail_rows = [row_to_dict(row, 'detail', local_tz) for row in query_dtail]
     
-    query_combined = page_rows + detail_rows
+    query_combined = page_rows #+ detail_rows
     query_combined.sort(key=lambda x: (
         x.get('channel_name') or '',
         x.get('folder_name') or '',
-        x.get('file_name') or '',
-        x.get('detail_name') or ''
+        x.get('file_name') or ''
+        #x.get('detail_name') or ''
     ))
     # query_combined.sort(key=lambda x: (x['channel_name'], x['folder_name'], x['file_name'], x['detail_name']))
     
@@ -167,7 +167,7 @@ def row_to_dict(row, file_type, local_tz):
         'channel_name': row.channel_name,
         'folder_name': row.folder_name,
         'file_name': row.file_name,
-        'detail_name': row.detail_name if file_type == 'detail' else None,
+        #'detail_name': row.detail_name if file_type == 'detail' else None,
         'full_name': f"{channel} - {folder} - {filename}",
         'memo_count': row.memo_count if file_type == 'page' else 0,
         'start_time': row.start_time.astimezone(local_tz).strftime('%Y-%m-%d %H:%M:%S'),

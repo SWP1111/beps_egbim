@@ -144,21 +144,28 @@ def add_summary_day_date(start_dt, end_dt, folder_duration_map, user_ids):
     today = datetime.datetime.now().date()
     split_date = today - datetime.timedelta(days=2)
     
-    if start_dt <= split_date:
-        summary_end_date = min(end_dt, split_date)
+    # 요약 기간과 최신 기간을 명시적으로 나눔
+    summary_period_start = start_dt
+    summary_period_end = min(end_dt, split_date)
+    
+    recent_period_start = max(start_dt, split_date + datetime.timedelta(days=1))
+    recent_period_end = end_dt
+    
+    # 요약 기간 처리
+    if summary_period_start <= summary_period_end:
         rows = get_learning_summary_rows_day(
-            start_date=start_dt,
-            end_date=summary_end_date,
+            start_date=summary_period_start,
+            end_date=summary_period_end,
             user_ids=user_ids,
             group_fields=[LearningSummaryDay.channel_id, LearningSummaryDay.channel_name]
         )
         update_folder_duration_map(folder_duration_map, rows)
-        start_dt = summary_end_date + datetime.timedelta(days=1)
     
-    if start_dt <= end_dt:
+    # 최신 기간 처리
+    if recent_period_start <= recent_period_end:
         local_tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
-        utc_start_dt = datetime.datetime.combine(start_dt, datetime.time.min, local_tz).astimezone(datetime.timezone.utc)
-        utc_end_dt = datetime.datetime.combine(end_dt, datetime.time.max, local_tz).astimezone(datetime.timezone.utc)
+        utc_start_dt = datetime.datetime.combine(recent_period_start, datetime.time.min, local_tz).astimezone(datetime.timezone.utc)
+        utc_end_dt = datetime.datetime.combine(recent_period_end, datetime.time.max, local_tz).astimezone(datetime.timezone.utc)
         
         Page = aliased(ContentRelPages) # 🔹 ContentRelPages 테이블을 alias로 사용
         Detail = aliased(ContentRelPageDetails) # 🔹 ContentRelPageDetails 테이블을 alias로 사용
@@ -206,23 +213,31 @@ def add_summary_day_date_by_users(user_ids, start_dt, end_dt, folder_duration_by
         
     today = datetime.datetime.now().date()
     split_date = today - datetime.timedelta(days=2)
+
+    # 요약 기간과 최신 기간을 명시적으로 나눔
+    summary_period_start = start_dt
+    summary_period_end = min(end_dt, split_date)
     
-    if start_dt <= split_date:
-        summary_end_date = min(end_dt, split_date)
+    recent_period_start = max(start_dt, split_date + datetime.timedelta(days=1))
+    recent_period_end = end_dt
+    
+    # 요약 기간 처리
+    if summary_period_start <= summary_period_end:
         rows = get_learning_summary_rows_day(
-            start_date=start_dt,
-            end_date=summary_end_date,
+            start_date=summary_period_start,
+            end_date=summary_period_end,
             user_ids=user_ids,
             group_fields=[LearningSummaryDay.user_id, LearningSummaryDay.channel_id, LearningSummaryDay.channel_name]
         )
         for row in rows:
             d = folder_duration_by_user[row.user_id][row.channel_id]                      
             folder_duration_by_user[row.user_id][row.channel_id] = (d[0], d[1] + row.total)
-    
-    if start_dt <= end_dt:
+
+    # 최신 기간 처리
+    if recent_period_start <= recent_period_end:
         local_tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
-        utc_start_dt = datetime.datetime.combine(start_dt, datetime.time.min, local_tz).astimezone(datetime.timezone.utc)
-        utc_end_dt = datetime.datetime.combine(end_dt, datetime.time.max, local_tz).astimezone(datetime.timezone.utc)
+        utc_start_dt = datetime.datetime.combine(recent_period_start, datetime.time.min, local_tz).astimezone(datetime.timezone.utc)
+        utc_end_dt = datetime.datetime.combine(recent_period_end, datetime.time.max, local_tz).astimezone(datetime.timezone.utc)
         
         Page = aliased(ContentRelPages) # 🔹 ContentRelPages 테이블을 alias로 사용
         Detail = aliased(ContentRelPageDetails) # 🔹 ContentRelPageDetails 테이블을 alias로 사용
